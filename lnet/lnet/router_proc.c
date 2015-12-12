@@ -397,6 +397,8 @@ proc_lnet_routers(struct ctl_table *table, int write, void __user *buffer,
 	return rc;
 }
 
+/* TODO: there should be no direct access to ptable. We should add a set
+ * of APIs that give access to the ptable and its members */
 static int
 proc_lnet_peers(struct ctl_table *table, int write, void __user *buffer,
 		size_t *lenp, loff_t *ppos)

@@ -488,6 +488,7 @@ lnet_net2rnethash(__u32 net)
 extern lnd_t the_lolnd;
 extern int avoid_asym_router_failure;
 
+extern unsigned int lnet_nid_cpt_hash(lnet_nid_t nid, unsigned int number);
 extern int lnet_cpt_of_nid_locked(lnet_nid_t nid, struct lnet_ni *ni);
 extern int lnet_cpt_of_nid(lnet_nid_t nid, struct lnet_ni *ni);
 extern lnet_ni_t *lnet_nid2ni_locked(lnet_nid_t nid, int cpt);
@@ -790,8 +791,7 @@ bool lnet_net_unique(__u32 net_id, struct list_head *nilist,
 bool lnet_ni_unique_net(struct list_head *nilist, char *iface);
 
 int lnet_nid2peerni_locked(struct lnet_peer_ni **lpp, lnet_nid_t nid, int cpt);
-struct lnet_peer_ni *lnet_find_peer_locked(struct lnet_peer_table *ptable,
-				   lnet_nid_t nid);
+struct lnet_peer_ni *lnet_find_peer_ni_locked(lnet_nid_t nid, int cpt);
 void lnet_peer_tables_cleanup(lnet_ni_t *ni);
 void lnet_peer_tables_destroy(void);
 int lnet_peer_tables_create(void);

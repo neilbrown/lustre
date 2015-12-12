@@ -1763,7 +1763,7 @@ lnet_notify(lnet_ni_t *ni, lnet_nid_t nid, int alive, cfs_time_t when)
 		return -ESHUTDOWN;
 	}
 
-	lp = lnet_find_peer_locked(the_lnet.ln_peer_tables[cpt], nid);
+	lp = lnet_find_peer_ni_locked(nid, cpt);
 	if (lp == NULL) {
 		/* nid not found */
 		lnet_net_unlock(cpt);

@@ -790,8 +790,8 @@ lnet_peer_alive_locked (struct lnet_ni *ni, struct lnet_peer_ni *lp)
 static int
 lnet_post_send_locked(lnet_msg_t *msg, int do_send)
 {
-	struct lnet_peer_ni		*lp = msg->msg_txpeer;
-	lnet_ni_t		*ni = msg->msg_txni;
+	struct lnet_peer_ni	*lp = msg->msg_txpeer;
+	struct lnet_ni		*ni = msg->msg_txni;
 	int			cpt = msg->msg_tx_cpt;
 	struct lnet_tx_queue	*tq = ni->ni_tx_queues[cpt];
 
