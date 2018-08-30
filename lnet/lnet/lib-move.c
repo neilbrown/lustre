@@ -709,8 +709,10 @@ lnet_peer_is_alive (lnet_peer_t *lp, cfs_time_t now)
 	    cfs_time_aftereq(lp->lp_timestamp, lp->lp_last_alive))
 		return 0;
 
-	deadline = cfs_time_add(lp->lp_last_alive,
-				cfs_time_seconds(lp->lp_ni->ni_peertimeout));
+	deadline =
+	  cfs_time_add(lp->lp_last_alive,
+		       cfs_time_seconds(lp->lp_ni->ni_net->net_tunables.
+					lct_peer_timeout));
 	alive = cfs_time_after(deadline, now);
 
 	/* Update obsolete lp_alive except for routers assumed to be dead
@@ -754,7 +756,7 @@ lnet_peer_alive_locked (lnet_peer_t *lp)
 				      libcfs_nid2str(lp->lp_nid),
 				      (int)now, (int)next_query,
 				      lnet_queryinterval,
-				      lp->lp_ni->ni_peertimeout);
+				      lp->lp_ni->ni_net->net_tunables.lct_peer_timeout);
 			return 0;
 		}
 	}

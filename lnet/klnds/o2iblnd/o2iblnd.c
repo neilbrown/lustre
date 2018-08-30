@@ -334,7 +334,7 @@ kiblnd_create_peer(lnet_ni_t *ni, kib_peer_t **peerp, lnet_nid_t nid)
 	peer->ibp_error = 0;
 	peer->ibp_last_alive = 0;
 	peer->ibp_max_frags = kiblnd_cfg_rdma_frags(peer->ibp_ni);
-	peer->ibp_queue_depth = ni->ni_peertxcredits;
+	peer->ibp_queue_depth = ni->ni_net->net_tunables.lct_peer_tx_credits;
 	atomic_set(&peer->ibp_refcount, 1);	/* 1 ref for caller */
 
 	INIT_LIST_HEAD(&peer->ibp_list);	/* not in the peer table yet */

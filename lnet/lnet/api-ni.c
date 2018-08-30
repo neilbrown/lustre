@@ -1101,11 +1101,11 @@ lnet_ni_tq_credits(lnet_ni_t *ni)
 	LASSERT(ni->ni_ncpts >= 1);
 
 	if (ni->ni_ncpts == 1)
-		return ni->ni_maxtxcredits;
+		return ni->ni_net->net_tunables.lct_max_tx_credits;
 
-	credits = ni->ni_maxtxcredits / ni->ni_ncpts;
-	credits = max(credits, 8 * ni->ni_peertxcredits);
-	credits = min(credits, ni->ni_maxtxcredits);
+	credits = ni->ni_net->net_tunables.lct_max_tx_credits / ni->ni_ncpts;
+	credits = max(credits, 8 * ni->ni_net->net_tunables.lct_peer_tx_credits);
+	credits = min(credits, ni->ni_net->net_tunables.lct_max_tx_credits);
 
 	return credits;
 }
@@ -1340,16 +1340,16 @@ lnet_startup_lndni(struct lnet_ni *ni, struct lnet_ioctl_config_data *conf)
 	 * override the values in the NI structure. */
 	if (conf) {
 		if (conf->cfg_config_u.cfg_net.net_peer_rtr_credits >= 0)
-			ni->ni_peerrtrcredits =
+			ni->ni_net->net_tunables.lct_peer_rtr_credits =
 				conf->cfg_config_u.cfg_net.net_peer_rtr_credits;
 		if (conf->cfg_config_u.cfg_net.net_peer_timeout >= 0)
-			ni->ni_peertimeout =
+			ni->ni_net->net_tunables.lct_peer_timeout =
 				conf->cfg_config_u.cfg_net.net_peer_timeout;
 		if (conf->cfg_config_u.cfg_net.net_peer_tx_credits >= 0)
-			ni->ni_peertxcredits =
+			ni->ni_net->net_tunables.lct_peer_tx_credits =
 				conf->cfg_config_u.cfg_net.net_peer_tx_credits;
 		if (conf->cfg_config_u.cfg_net.net_max_tx_credits >= 0)
-			ni->ni_maxtxcredits =
+			ni->ni_net->net_tunables.lct_max_tx_credits =
 				conf->cfg_config_u.cfg_net.net_max_tx_credits;
 	}
 
@@ -1366,8 +1366,6 @@ lnet_startup_lndni(struct lnet_ni *ni, struct lnet_ioctl_config_data *conf)
 		goto failed0;
 	}
 
-	LASSERT(ni->ni_peertimeout <= 0 || lnd->lnd_query != NULL);
-
 	lnet_net_lock(LNET_LOCK_EX);
 	/* refcount for ln_nis */
 	lnet_ni_addref_locked(ni, 0);
@@ -1383,13 +1381,18 @@ lnet_startup_lndni(struct lnet_ni *ni, struct lnet_ioctl_config_data *conf)
 		lnet_ni_addref(ni);
 		LASSERT(the_lnet.ln_loni == NULL);
 		the_lnet.ln_loni = ni;
+		ni->ni_net->net_tunables.lct_peer_tx_credits = 0;
+		ni->ni_net->net_tunables.lct_peer_rtr_credits = 0;
+		ni->ni_net->net_tunables.lct_max_tx_credits = 0;
+		ni->ni_net->net_tunables.lct_peer_timeout = 0;
 		return 0;
 	}
 
-	if (ni->ni_peertxcredits == 0 || ni->ni_maxtxcredits == 0) {
+	if (ni->ni_net->net_tunables.lct_peer_tx_credits == 0 ||
+	    ni->ni_net->net_tunables.lct_max_tx_credits == 0) {
 		LCONSOLE_ERROR_MSG(0x107, "LNI %s has no %scredits\n",
 				   libcfs_lnd2str(lnd->lnd_type),
-				   ni->ni_peertxcredits == 0 ?
+				   ni->ni_net->net_tunables.lct_peer_tx_credits == 0 ?
 					"" : "per-peer ");
 		/* shutdown the NI since if we get here then it must've already
 		 * been started
@@ -1405,9 +1408,11 @@ lnet_startup_lndni(struct lnet_ni *ni, struct lnet_ioctl_config_data *conf)
 	}
 
 	CDEBUG(D_LNI, "Added LNI %s [%d/%d/%d/%d]\n",
-		libcfs_nid2str(ni->ni_nid), ni->ni_peertxcredits,
+		libcfs_nid2str(ni->ni_nid),
+		ni->ni_net->net_tunables.lct_peer_tx_credits,
 		lnet_ni_tq_credits(ni) * LNET_CPT_NUMBER,
-		ni->ni_peerrtrcredits, ni->ni_peertimeout);
+		ni->ni_net->net_tunables.lct_peer_rtr_credits,
+		ni->ni_net->net_tunables.lct_peer_timeout);
 
 	return 0;
 failed0:
@@ -1732,10 +1737,14 @@ lnet_fill_ni_info(struct lnet_ni *ni, struct lnet_ioctl_config_data *config)
 	}
 
 	config->cfg_nid = ni->ni_nid;
-	config->cfg_config_u.cfg_net.net_peer_timeout = ni->ni_peertimeout;
-	config->cfg_config_u.cfg_net.net_max_tx_credits = ni->ni_maxtxcredits;
-	config->cfg_config_u.cfg_net.net_peer_tx_credits = ni->ni_peertxcredits;
-	config->cfg_config_u.cfg_net.net_peer_rtr_credits = ni->ni_peerrtrcredits;
+	config->cfg_config_u.cfg_net.net_peer_timeout =
+		ni->ni_net->net_tunables.lct_peer_timeout;
+	config->cfg_config_u.cfg_net.net_max_tx_credits =
+		ni->ni_net->net_tunables.lct_max_tx_credits;
+	config->cfg_config_u.cfg_net.net_peer_tx_credits =
+		ni->ni_net->net_tunables.lct_peer_tx_credits;
+	config->cfg_config_u.cfg_net.net_peer_rtr_credits =
+		ni->ni_net->net_tunables.lct_peer_rtr_credits;
 
 	net_config->ni_status = ni->ni_status->ns_status;
 

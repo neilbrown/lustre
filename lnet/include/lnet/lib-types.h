@@ -263,17 +263,24 @@ struct lnet_tx_queue {
 	struct list_head	tq_delayed;	/* delayed TXs */
 };
 
+struct lnet_net {
+
+	/* network tunables */
+	struct lnet_ioctl_config_lnd_cmn_tunables net_tunables;
+
+	/*
+	 * boolean to indicate that the tunables have been set and
+	 * shouldn't be reset
+	 */
+	bool			net_tunables_set;
+
+};
+
 typedef struct lnet_ni {
 	spinlock_t		ni_lock;
 	struct list_head	ni_list;	/* chain on ln_nis */
 	struct list_head	ni_cptlist;	/* chain on ln_nis_cpt */
-	int			ni_maxtxcredits; /* # tx credits  */
-	/* # per-peer send credits */
-	int			ni_peertxcredits;
-	/* # per-peer router buffer credits */
-	int			ni_peerrtrcredits;
-	/* seconds to consider peer dead */
-	int			ni_peertimeout;
+
 	/* number of CPTs */
 	int			ni_ncpts;
 
@@ -296,6 +303,9 @@ typedef struct lnet_ni {
 
 	/* when I was last alive */
 	time64_t		ni_last_alive;
+
+	/* pointer to parent network */
+	struct lnet_net		*ni_net;
 
 	/* my health status */
 	struct lnet_ni_status	*ni_status;
@@ -412,7 +422,7 @@ struct lnet_peer_table {
 /* peer aliveness is enabled only on routers for peers in a network where the
  * lnet_ni_t::ni_peertimeout has been set to a positive value */
 #define lnet_peer_aliveness_enabled(lp) (the_lnet.ln_routing != 0 && \
-					 (lp)->lp_ni->ni_peertimeout > 0)
+					 (lp)->lp_ni->ni_net->net_tunables.lct_peer_timeout > 0)
 
 typedef struct {
 	struct list_head	lr_list;	/* chain on net */
