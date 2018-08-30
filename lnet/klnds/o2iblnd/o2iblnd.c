@@ -3177,7 +3177,7 @@ kiblnd_startup (lnet_ni_t *ni)
         int                       rc;
 	int			  newdev;
 
-        LASSERT (ni->ni_lnd == &the_o2iblnd);
+        LASSERT (ni->ni_net->net_lnd == &the_o2iblnd);
 
         if (kiblnd_data.kib_init == IBLND_INIT_NOTHING) {
                 rc = kiblnd_base_startup();

@@ -264,6 +264,8 @@ struct lnet_tx_queue {
 };
 
 struct lnet_net {
+	/* priority of the network */
+	__u32			net_prio;
 
 	/* network tunables */
 	struct lnet_ioctl_config_lnd_cmn_tunables net_tunables;
@@ -274,12 +276,19 @@ struct lnet_net {
 	 */
 	bool			net_tunables_set;
 
+	/* procedural interface */
+	lnd_t			*net_lnd;
+
 };
 
 typedef struct lnet_ni {
+	/* chain on ln_nis */
+	struct list_head	ni_list;
+
+	/* chain on ln_nis_cpt */
+	struct list_head	ni_cptlist;
+
 	spinlock_t		ni_lock;
-	struct list_head	ni_list;	/* chain on ln_nis */
-	struct list_head	ni_cptlist;	/* chain on ln_nis_cpt */
 
 	/* number of CPTs */
 	int			ni_ncpts;
@@ -292,8 +301,6 @@ typedef struct lnet_ni {
 
 	/* instance-specific data */
 	void			*ni_data;
-
-	lnd_t			*ni_lnd;	/* procedural interface */
 
 	/* percpt TX queues */
 	struct lnet_tx_queue	**ni_tx_queues;
@@ -308,7 +315,7 @@ typedef struct lnet_ni {
 	struct lnet_net		*ni_net;
 
 	/* my health status */
-	struct lnet_ni_status	*ni_status;
+	lnet_ni_status_t	*ni_status;
 
 	/* per NI LND tunables */
 	struct lnet_ioctl_config_lnd_tunables *ni_lnd_tunables;

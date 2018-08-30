@@ -2775,7 +2775,7 @@ ksocknal_startup (lnet_ni_t *ni)
         int           rc;
         int           i;
 
-        LASSERT (ni->ni_lnd == &the_ksocklnd);
+        LASSERT (ni->ni_net->net_lnd == &the_ksocklnd);
 
         if (ksocknal_data.ksnd_init == SOCKNAL_INIT_NOTHING) {
                 rc = ksocknal_base_startup();

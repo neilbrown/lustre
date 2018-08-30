@@ -690,7 +690,7 @@ proc_lnet_nis(struct ctl_table *table, int write, void __user *buffer,
 				last_alive = now - ni->ni_last_alive;
 
 			/* @lo forever alive */
-			if (ni->ni_lnd->lnd_type == LOLND)
+			if (ni->ni_net->net_lnd->lnd_type == LOLND)
 				last_alive = 0;
 
 			lnet_ni_lock(ni);

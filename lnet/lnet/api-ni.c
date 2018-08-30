@@ -860,7 +860,7 @@ lnet_count_acceptor_nis (void)
 	list_for_each(tmp, &the_lnet.ln_nis) {
 		ni = list_entry(tmp, lnet_ni_t, ni_list);
 
-		if (ni->ni_lnd->lnd_accept != NULL)
+		if (ni->ni_net->net_lnd->lnd_accept != NULL)
 			count++;
 	}
 
@@ -1163,13 +1163,13 @@ lnet_clear_zombies_nis_locked(void)
 			continue;
 		}
 
-		ni->ni_lnd->lnd_refcount--;
+		ni->ni_net->net_lnd->lnd_refcount--;
 		lnet_net_unlock(LNET_LOCK_EX);
 
-		islo = ni->ni_lnd->lnd_type == LOLND;
+		islo = ni->ni_net->net_lnd->lnd_type == LOLND;
 
 		LASSERT(!in_interrupt());
-		(ni->ni_lnd->lnd_shutdown)(ni);
+		(ni->ni_net->net_lnd->lnd_shutdown)(ni);
 
 		/* can't deref lnd anymore now; it might have unregistered
 		 * itself...  */
@@ -1319,7 +1319,7 @@ lnet_startup_lndni(struct lnet_ni *ni, struct lnet_ioctl_config_data *conf)
 	lnd->lnd_refcount++;
 	lnet_net_unlock(LNET_LOCK_EX);
 
-	ni->ni_lnd = lnd;
+	ni->ni_net->net_lnd = lnd;
 
 	if (conf && conf->cfg_hdr.ioc_len > sizeof(*conf))
 		lnd_tunables = (struct lnet_ioctl_config_lnd_tunables *)conf->cfg_bulk;
@@ -1862,7 +1862,7 @@ lnet_dyn_add_ni(lnet_pid_t requested_pid, struct lnet_ioctl_config_data *conf)
 	if (rc != 0)
 		goto failed1;
 
-	if (ni->ni_lnd->lnd_accept != NULL) {
+	if (ni->ni_net->net_lnd->lnd_accept != NULL) {
 		rc = lnet_acceptor_start();
 		if (rc < 0) {
 			/* shutdown the ni that we just started */
@@ -2146,10 +2146,10 @@ LNetCtl(unsigned int cmd, void *arg)
 		if (ni == NULL)
 			return -EINVAL;
 
-		if (ni->ni_lnd->lnd_ctl == NULL)
+		if (ni->ni_net->net_lnd->lnd_ctl == NULL)
 			rc = -EINVAL;
 		else
-			rc = ni->ni_lnd->lnd_ctl(ni, cmd, arg);
+			rc = ni->ni_net->net_lnd->lnd_ctl(ni, cmd, arg);
 
 		lnet_ni_decref(ni);
 		return rc;
