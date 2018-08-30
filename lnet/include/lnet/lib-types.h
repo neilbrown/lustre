@@ -87,34 +87,34 @@ typedef struct lnet_msg {
 	/* ready for pending on RX delay list */
 	unsigned int		msg_rx_ready_delay:1;
 
-	unsigned int	      msg_vmflush:1;	  /* VM trying to free memory */
-	unsigned int	      msg_target_is_router:1; /* sending to a router */
-	unsigned int	      msg_routing:1;	  /* being forwarded */
-	unsigned int	      msg_ack:1;	  /* ack on finalize (PUT) */
-	unsigned int	      msg_sending:1;	  /* outgoing message */
-	unsigned int	      msg_receiving:1;	  /* being received */
-	unsigned int	      msg_txcredit:1;	  /* taken an NI send credit */
-	unsigned int	      msg_peertxcredit:1; /* taken a peer send credit */
-	unsigned int	      msg_rtrcredit:1;	  /* taken a globel router credit */
-	unsigned int	      msg_peerrtrcredit:1; /* taken a peer router credit */
-	unsigned int	      msg_onactivelist:1; /* on the activelist */
+	unsigned int          msg_vmflush:1;      /* VM trying to free memory */
+	unsigned int          msg_target_is_router:1; /* sending to a router */
+	unsigned int          msg_routing:1;      /* being forwarded */
+	unsigned int          msg_ack:1;          /* ack on finalize (PUT) */
+	unsigned int          msg_sending:1;      /* outgoing message */
+	unsigned int          msg_receiving:1;    /* being received */
+	unsigned int          msg_txcredit:1;     /* taken an NI send credit */
+	unsigned int          msg_peertxcredit:1; /* taken a peer send credit */
+	unsigned int          msg_rtrcredit:1;    /* taken a globel router credit */
+	unsigned int          msg_peerrtrcredit:1; /* taken a peer router credit */
+	unsigned int          msg_onactivelist:1; /* on the activelist */
 	unsigned int	      msg_rdma_get:1;
 
-	struct lnet_peer     *msg_txpeer;	  /* peer I'm sending to */
-	struct lnet_peer     *msg_rxpeer;	  /* peer I received from */
+	struct lnet_peer     *msg_txpeer;         /* peer I'm sending to */
+	struct lnet_peer     *msg_rxpeer;         /* peer I received from */
 
-	void		     *msg_private;
+	void                 *msg_private;
 	struct lnet_libmd    *msg_md;
 
-	unsigned int	      msg_len;
-	unsigned int	      msg_wanted;
-	unsigned int	      msg_offset;
-	unsigned int	      msg_niov;
+	unsigned int          msg_len;
+	unsigned int          msg_wanted;
+	unsigned int          msg_offset;
+	unsigned int          msg_niov;
 	struct kvec	     *msg_iov;
-	lnet_kiov_t	     *msg_kiov;
+	lnet_kiov_t          *msg_kiov;
 
-	lnet_event_t	      msg_ev;
-	lnet_hdr_t	      msg_hdr;
+	lnet_event_t          msg_ev;
+	lnet_hdr_t            msg_hdr;
 } lnet_msg_t;
 
 
