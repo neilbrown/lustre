@@ -1391,7 +1391,7 @@ kiblnd_find_rd_dma_mr(struct lnet_ni *ni, kib_rdma_desc_t *rd,
 	int	mod;
 	__u16	nfrags;
 
-	tunables = &ni->ni_lnd_tunables->lt_tun_u.lt_o2ib;
+	tunables = &ni->ni_lnd_tunables.lnd_tun_u.lnd_o2ib;
 	mod = tunables->lnd_map_on_demand;
 	nfrags = (negotiated_nfrags != -1) ? negotiated_nfrags : mod;
 
@@ -2395,7 +2395,7 @@ kiblnd_net_init_pools(kib_net_t *net, lnet_ni_t *ni, __u32 *cpts, int ncpts)
 	int		rc;
 	int		i;
 
-	tunables = &ni->ni_lnd_tunables->lt_tun_u.lt_o2ib;
+	tunables = &ni->ni_lnd_tunables.lnd_tun_u.lnd_o2ib;
 
 	read_lock_irqsave(&kiblnd_data.kib_global_lock, flags);
 	if (tunables->lnd_map_on_demand == 0) {

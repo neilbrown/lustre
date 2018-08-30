@@ -318,7 +318,11 @@ typedef struct lnet_ni {
 	lnet_ni_status_t	*ni_status;
 
 	/* per NI LND tunables */
-	struct lnet_ioctl_config_lnd_tunables *ni_lnd_tunables;
+	struct lnet_lnd_tunables ni_lnd_tunables;
+
+	/* lnd tunables set explicitly */
+	bool ni_lnd_tunables_set;
+
 	/*
 	 * equivalent interfaces to use
 	 * This is an array because socklnd bonding can still be configured

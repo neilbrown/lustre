@@ -1257,6 +1257,7 @@ static int
 lnet_startup_lndni(struct lnet_ni *ni, struct lnet_ioctl_config_data *conf)
 {
 	struct lnet_ioctl_config_lnd_tunables *lnd_tunables = NULL;
+	struct lnet_lnd_tunables *tun = NULL;
 	int			rc = -EINVAL;
 	__u32			lnd_type;
 	lnd_t			*lnd;
@@ -1321,19 +1322,14 @@ lnet_startup_lndni(struct lnet_ni *ni, struct lnet_ioctl_config_data *conf)
 
 	ni->ni_net->net_lnd = lnd;
 
-	if (conf && conf->cfg_hdr.ioc_len > sizeof(*conf))
+	if (conf && conf->cfg_hdr.ioc_len > sizeof(*conf)) {
 		lnd_tunables = (struct lnet_ioctl_config_lnd_tunables *)conf->cfg_bulk;
+		tun = &lnd_tunables->lt_tun;
+	}
 
-	if (lnd_tunables != NULL) {
-		LIBCFS_ALLOC(ni->ni_lnd_tunables,
-			     sizeof(*ni->ni_lnd_tunables));
-		if (ni->ni_lnd_tunables == NULL) {
-			mutex_unlock(&the_lnet.ln_lnd_mutex);
-			rc = -ENOMEM;
-			goto failed0;
-		}
-		memcpy(ni->ni_lnd_tunables, lnd_tunables,
-		       sizeof(*ni->ni_lnd_tunables));
+	if (tun) {
+		memcpy(&ni->ni_lnd_tunables, tun, sizeof(*tun));
+		ni->ni_lnd_tunables_set = true;
 	}
 
 	/* If given some LND tunable parameters, parse those now to
@@ -1767,15 +1763,15 @@ lnet_fill_ni_info(struct lnet_ni *ni, struct lnet_ioctl_config_data *config)
 		tunable_size = config->cfg_hdr.ioc_len - min_size;
 
 	/* Don't copy to much data to user space */
-	min_size = min(tunable_size, sizeof(*ni->ni_lnd_tunables));
+	min_size = min(tunable_size, sizeof(ni->ni_lnd_tunables));
 	lnd_cfg = (struct lnet_ioctl_config_lnd_tunables *)net_config->cfg_bulk;
 
-	if (ni->ni_lnd_tunables && lnd_cfg && min_size) {
-		memcpy(lnd_cfg, ni->ni_lnd_tunables, min_size);
+	if (lnd_cfg && min_size) {
+		memcpy(&lnd_cfg->lt_tun, &ni->ni_lnd_tunables, min_size);
 		config->cfg_config_u.cfg_net.net_interface_count = 1;
 
 		/* Tell user land that kernel side has less data */
-		if (tunable_size > sizeof(*ni->ni_lnd_tunables)) {
+		if (tunable_size > sizeof(ni->ni_lnd_tunables)) {
 			min_size = tunable_size - sizeof(ni->ni_lnd_tunables);
 			config->cfg_hdr.ioc_len -= min_size;
 		}
