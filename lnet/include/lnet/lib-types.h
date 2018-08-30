@@ -274,18 +274,38 @@ typedef struct lnet_ni {
 	int			ni_peerrtrcredits;
 	/* seconds to consider peer dead */
 	int			ni_peertimeout;
-	int			ni_ncpts;	/* number of CPTs */
-	__u32			*ni_cpts;	/* bond NI on some CPTs */
-	lnet_nid_t		ni_nid;		/* interface's NID */
-	void			*ni_data;	/* instance-specific data */
+	/* number of CPTs */
+	int			ni_ncpts;
+
+	/* bond NI on some CPTs */
+	__u32			*ni_cpts;
+
+	/* interface's NID */
+	lnet_nid_t		ni_nid;
+
+	/* instance-specific data */
+	void			*ni_data;
+
 	lnd_t			*ni_lnd;	/* procedural interface */
-	struct lnet_tx_queue	**ni_tx_queues;	/* percpt TX queues */
-	int			**ni_refs;	/* percpt reference count */
-	time64_t		ni_last_alive;	/* when I was last alive */
-	struct lnet_ni_status	*ni_status;	/* my health status */
+
+	/* percpt TX queues */
+	struct lnet_tx_queue	**ni_tx_queues;
+
+	/* percpt reference count */
+	int			**ni_refs;
+
+	/* when I was last alive */
+	time64_t		ni_last_alive;
+
+	/* my health status */
+	struct lnet_ni_status	*ni_status;
+
 	/* per NI LND tunables */
 	struct lnet_ioctl_config_lnd_tunables *ni_lnd_tunables;
-	/* equivalent interfaces to use */
+	/*
+	 * equivalent interfaces to use
+	 * This is an array because socklnd bonding can still be configured
+	 */
 	char			*ni_interfaces[LNET_MAX_INTERFACES];
 	struct net		*ni_net_ns;     /* original net namespace */
 } lnet_ni_t;
