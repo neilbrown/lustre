@@ -279,24 +279,6 @@ lnet_me_free(lnet_me_t *me)
 	kmem_cache_free(lnet_mes_cachep, me);
 }
 
-static inline lnet_msg_t *
-lnet_msg_alloc(void)
-{
-	lnet_msg_t *msg;
-
-	LIBCFS_ALLOC(msg, sizeof(*msg));
-
-	/* no need to zero, LIBCFS_ALLOC does for us */
-	return (msg);
-}
-
-static inline void
-lnet_msg_free(lnet_msg_t *msg)
-{
-	LASSERT(!msg->msg_onactivelist);
-	LIBCFS_FREE(msg, sizeof(*msg));
-}
-
 lnet_libhandle_t *lnet_res_lh_lookup(struct lnet_res_container *rec,
 				     __u64 cookie);
 void lnet_res_lh_initialize(struct lnet_res_container *rec,
@@ -454,8 +436,27 @@ lnet_ni_decref(lnet_ni_t *ni)
 	lnet_net_unlock(0);
 }
 
-void lnet_ni_free(lnet_ni_t *ni);
-lnet_ni_t *
+static inline lnet_msg_t *
+lnet_msg_alloc(void)
+{
+	lnet_msg_t *msg;
+
+	LIBCFS_ALLOC(msg, sizeof(*msg));
+
+	/* no need to zero, LIBCFS_ALLOC does for us */
+	return (msg);
+}
+
+static inline void
+lnet_msg_free(lnet_msg_t *msg)
+{
+	LASSERT(!msg->msg_onactivelist);
+	LIBCFS_FREE(msg, sizeof(*msg));
+}
+
+void lnet_ni_free(struct lnet_ni *ni);
+
+struct lnet_ni *
 lnet_ni_alloc(__u32 net, struct cfs_expr_list *el, struct list_head *nilist);
 
 static inline int
