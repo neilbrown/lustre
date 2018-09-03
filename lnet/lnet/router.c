@@ -1242,7 +1242,7 @@ rescan:
 		list_for_each(entry, &the_lnet.ln_routers) {
 			rtr = list_entry(entry, lnet_peer_t, lp_rtr_list);
 
-			cpt2 = lnet_cpt_of_nid_locked(rtr->lp_nid);
+			cpt2 = rtr->lp_cpt;
 			if (cpt != cpt2) {
 				lnet_net_unlock(cpt);
 				cpt = cpt2;
@@ -1718,7 +1718,7 @@ lnet_notify(lnet_ni_t *ni, lnet_nid_t nid, int alive, cfs_time_t when)
 {
 	struct lnet_peer	*lp = NULL;
 	cfs_time_t		now = cfs_time_current();
-	int			cpt = lnet_cpt_of_nid(nid);
+	int			cpt = lnet_cpt_of_nid(nid, ni);
 
 	LASSERT (!in_interrupt ());
 

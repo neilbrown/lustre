@@ -116,7 +116,7 @@ kiblnd_get_idle_tx(lnet_ni_t *ni, lnet_nid_t target)
 	kib_tx_t		*tx;
 	kib_tx_poolset_t	*tps;
 
-	tps = net->ibn_tx_ps[lnet_cpt_of_nid(target)];
+	tps = net->ibn_tx_ps[lnet_cpt_of_nid(target, ni)];
 	node = kiblnd_pool_alloc_node(&tps->tps_poolset);
         if (node == NULL)
                 return NULL;

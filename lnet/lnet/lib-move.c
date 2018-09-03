@@ -1270,7 +1270,9 @@ lnet_send(lnet_nid_t src_nid, lnet_msg_t *msg, lnet_nid_t rtr_nid)
 	msg->msg_sending = 1;
 
 	LASSERT(!msg->msg_tx_committed);
-	cpt = lnet_cpt_of_nid(rtr_nid == LNET_NID_ANY ? dst_nid : rtr_nid);
+	local_ni = lnet_net2ni(LNET_NIDNET(dst_nid));
+	cpt = lnet_cpt_of_nid(rtr_nid == LNET_NID_ANY ? dst_nid : rtr_nid,
+			      local_ni);
  again:
 	lnet_net_lock(cpt);
 
@@ -1362,7 +1364,7 @@ lnet_send(lnet_nid_t src_nid, lnet_msg_t *msg, lnet_nid_t rtr_nid)
 		 * pre-determined router, this can happen if router table
 		 * was changed when we release the lock */
 		if (rtr_nid != lp->lp_nid) {
-			cpt2 = lnet_cpt_of_nid_locked(lp->lp_nid);
+			cpt2 = lp->lp_cpt;
 			if (cpt2 != cpt) {
 				if (src_ni != NULL)
 					lnet_ni_decref_locked(src_ni, cpt);
@@ -1855,7 +1857,7 @@ lnet_parse(lnet_ni_t *ni, lnet_hdr_t *hdr, lnet_nid_t from_nid,
 	payload_length = le32_to_cpu(hdr->payload_length);
 
 	for_me = (ni->ni_nid == dest_nid);
-	cpt = lnet_cpt_of_nid(from_nid);
+	cpt = lnet_cpt_of_nid(from_nid, ni);
 
 	switch (type) {
 	case LNET_MSG_ACK:
@@ -2329,7 +2331,7 @@ lnet_create_reply_msg (lnet_ni_t *ni, lnet_msg_t *getmsg)
 	lnet_msg_attach_md(msg, getmd, getmd->md_offset, getmd->md_length);
 	lnet_res_unlock(cpt);
 
-	cpt = lnet_cpt_of_nid(peer_id.nid);
+	cpt = lnet_cpt_of_nid(peer_id.nid, ni);
 
 	lnet_net_lock(cpt);
 	lnet_msg_commit(msg, cpt);
@@ -2340,7 +2342,7 @@ lnet_create_reply_msg (lnet_ni_t *ni, lnet_msg_t *getmsg)
 	return msg;
 
  drop:
-	cpt = lnet_cpt_of_nid(peer_id.nid);
+	cpt = lnet_cpt_of_nid(peer_id.nid, ni);
 
 	lnet_net_lock(cpt);
 	the_lnet.ln_counters[cpt]->drop_count++;

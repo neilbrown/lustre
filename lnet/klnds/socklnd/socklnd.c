@@ -98,7 +98,7 @@ ksocknal_destroy_route (ksock_route_t *route)
 static int
 ksocknal_create_peer(ksock_peer_t **peerp, lnet_ni_t *ni, lnet_process_id_t id)
 {
-	int		cpt = lnet_cpt_of_nid(id.nid);
+	int		cpt = lnet_cpt_of_nid(id.nid, ni);
 	ksock_net_t	*net = ni->ni_data;
 	ksock_peer_t	*peer;
 
@@ -1117,7 +1117,7 @@ ksocknal_create_conn(lnet_ni_t *ni, ksock_route_t *route,
         LASSERT (conn->ksnc_proto != NULL);
         LASSERT (peerid.nid != LNET_NID_ANY);
 
-	cpt = lnet_cpt_of_nid(peerid.nid);
+	cpt = lnet_cpt_of_nid(peerid.nid, ni);
 
         if (active) {
                 ksocknal_peer_addref(peer);
