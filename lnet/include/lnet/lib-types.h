@@ -417,8 +417,8 @@ typedef struct lnet_peer {
 	cfs_time_t		lp_last_alive;
 	/* when lp_ni was queried last time */
 	cfs_time_t		lp_last_query;
-	/* interface peer is on */
-	lnet_ni_t		*lp_ni;
+	/* network peer is on */
+	struct lnet_net		*lp_net;
 	lnet_nid_t		lp_nid;		/* peer's NID */
 	int			lp_refcount;	/* # refs */
 	int			lp_cpt;		/* CPT this peer attached on */
@@ -447,7 +447,7 @@ struct lnet_peer_table {
 /* peer aliveness is enabled only on routers for peers in a network where the
  * lnet_ni_t::ni_peertimeout has been set to a positive value */
 #define lnet_peer_aliveness_enabled(lp) (the_lnet.ln_routing != 0 && \
-					 (lp)->lp_ni->ni_net->net_tunables.lct_peer_timeout > 0)
+					 (lp)->lp_net->net_tunables.lct_peer_timeout > 0)
 
 typedef struct {
 	struct list_head	lr_list;	/* chain on net */
