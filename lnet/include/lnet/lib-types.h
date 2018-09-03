@@ -525,6 +525,7 @@ enum {
 struct lnet_match_info {
 	__u64			mi_mbits;
 	lnet_process_id_t	mi_id;
+	unsigned int		mi_cpt;
 	unsigned int		mi_opc;
 	unsigned int		mi_portal;
 	unsigned int		mi_rlength;

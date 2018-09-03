@@ -1475,6 +1475,7 @@ lnet_parse_put(lnet_ni_t *ni, lnet_msg_t *msg)
 	info.mi_rlength	= hdr->payload_length;
 	info.mi_roffset	= hdr->msg.put.offset;
 	info.mi_mbits	= hdr->msg.put.match_bits;
+	info.mi_cpt	= msg->msg_rxpeer->lp_cpt;
 
 	msg->msg_rx_ready_delay = ni->ni_net->net_lnd->lnd_eager_recv == NULL;
 	ready_delay = msg->msg_rx_ready_delay;
