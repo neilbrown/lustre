@@ -2463,7 +2463,7 @@ int
 LNetDist(lnet_nid_t dstnid, lnet_nid_t *srcnidp, __u32 *orderp)
 {
 	struct list_head	*e;
-	struct lnet_ni		*ni;
+	struct lnet_ni		*ni = NULL;
 	lnet_remotenet_t	*rnet;
 	__u32			dstnet = LNET_NIDNET(dstnid);
 	int			hops;
@@ -2480,9 +2480,7 @@ LNetDist(lnet_nid_t dstnid, lnet_nid_t *srcnidp, __u32 *orderp)
 
 	cpt = lnet_net_lock_current();
 
-	list_for_each(e, &the_lnet.ln_nis) {
-		ni = list_entry(e, lnet_ni_t, ni_list);
-
+	while ((ni = lnet_get_next_ni_locked(NULL, ni))) {
 		if (ni->ni_nid == dstnid) {
 			if (srcnidp != NULL)
 				*srcnidp = dstnid;

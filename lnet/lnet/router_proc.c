@@ -658,25 +658,12 @@ proc_lnet_nis(struct ctl_table *table, int write, void __user *buffer,
 			      "rtr", "max", "tx", "min");
 		LASSERT(tmpstr + tmpsiz - s > 0);
 	} else {
-		struct list_head  *n;
-		lnet_ni_t	  *ni	= NULL;
-		int		   skip = *ppos - 1;
+		lnet_ni_t         *ni   = NULL;
+		int                skip = *ppos - 1;
 
 		lnet_net_lock(0);
 
-		n = the_lnet.ln_nis.next;
-
-		while (n != &the_lnet.ln_nis) {
-			lnet_ni_t *a_ni = list_entry(n, lnet_ni_t, ni_list);
-
-			if (skip == 0) {
-				ni = a_ni;
-				break;
-			}
-
-			skip--;
-			n = n->next;
-		}
+		ni = lnet_get_ni_idx_locked(skip);
 
 		if (ni != NULL) {
 			struct lnet_tx_queue	*tq;

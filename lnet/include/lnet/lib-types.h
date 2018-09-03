@@ -264,6 +264,15 @@ struct lnet_tx_queue {
 };
 
 struct lnet_net {
+	/* chain on the ln_nets */
+	struct list_head	net_list;
+
+	/* net ID, which is compoed of
+	 * (net_type << 16) | net_num.
+	 * net_type can be one of the enumarated types defined in
+	 * lnet/include/lnet/nidstr.h */
+	__u32			net_id;
+
 	/* priority of the network */
 	__u32			net_prio;
 
@@ -279,11 +288,13 @@ struct lnet_net {
 	/* procedural interface */
 	lnd_t			*net_lnd;
 
+	/* list of NIs on this net */
+	struct list_head	net_ni_list;
 };
 
 typedef struct lnet_ni {
-	/* chain on ln_nis */
-	struct list_head	ni_list;
+	/* chain on the lnet_net structure */
+	struct list_head	ni_netlist;
 
 	/* chain on ln_nis_cpt */
 	struct list_head	ni_cptlist;
@@ -639,12 +650,14 @@ typedef struct
 	struct list_head		ln_drop_rules;
 	struct list_head		ln_delay_rules;
 
-	struct list_head		ln_nis;		/* LND instances */
+	/* LND instances */
+	struct list_head		ln_nets;
 	/* NIs bond on specific CPT(s) */
 	struct list_head		ln_nis_cpt;
 	/* dying LND instances */
 	struct list_head		ln_nis_zombie;
-	lnet_ni_t			*ln_loni;	/* the loopback NI */
+	/* the loopback NI */
+	struct lnet_ni			*ln_loni;
 
 	/* remote networks with routes to them */
 	struct list_head		*ln_remote_nets_hash;
