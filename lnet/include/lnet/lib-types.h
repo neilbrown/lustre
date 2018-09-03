@@ -659,7 +659,6 @@ typedef struct
 	struct list_head		ln_test_peers;
 	struct list_head		ln_drop_rules;
 	struct list_head		ln_delay_rules;
-
 	/* LND instances */
 	struct list_head		ln_nets;
 	/* NIs bond on specific CPT(s) */

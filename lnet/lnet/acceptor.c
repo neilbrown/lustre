@@ -311,7 +311,7 @@ lnet_accept(struct socket *sock, __u32 magic)
 		__swab64s(&cr.acr_nid);
 
 	ni = lnet_net2ni(LNET_NIDNET(cr.acr_nid));
-	if (ni == NULL ||		/* no matching net */
+	if (ni == NULL ||               /* no matching net */
 	    ni->ni_nid != cr.acr_nid) { /* right NET, wrong NID! */
 		if (ni != NULL)
 			lnet_ni_decref(ni);

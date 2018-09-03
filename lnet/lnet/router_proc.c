@@ -490,19 +490,19 @@ proc_lnet_peers(struct ctl_table *table, int write, void __user *buffer,
 			p = NULL;
 			hoff = 1;
 			hash++;
-		}
+                }
 
 		if (peer != NULL) {
-			lnet_nid_t nid	     = peer->lp_nid;
-			int	   nrefs     = peer->lp_refcount;
-			int	   lastalive = -1;
-			char	  *aliveness = "NA";
+			lnet_nid_t nid       = peer->lp_nid;
+			int nrefs     = peer->lp_refcount;
+			int lastalive = -1;
+			char *aliveness = "NA";
 			int maxcr = peer->lp_net->net_tunables.lct_peer_tx_credits;
-			int	   txcr      = peer->lp_txcredits;
-			int	   mintxcr   = peer->lp_mintxcredits;
-			int	   rtrcr     = peer->lp_rtrcredits;
-			int	   minrtrcr  = peer->lp_minrtrcredits;
-			int	   txqnob    = peer->lp_txqnob;
+			int txcr = peer->lp_txcredits;
+			int mintxcr = peer->lp_mintxcredits;
+			int rtrcr = peer->lp_rtrcredits;
+			int minrtrcr = peer->lp_minrtrcredits;
+			int txqnob = peer->lp_txqnob;
 
 			if (lnet_isrouter(peer) ||
 			    lnet_peer_aliveness_enabled(peer))
@@ -656,7 +656,7 @@ proc_lnet_nis(struct ctl_table *table, int write, void __user *buffer,
 			      "%-24s %6s %5s %4s %4s %4s %5s %5s %5s\n",
 			      "nid", "status", "alive", "refs", "peer",
 			      "rtr", "max", "tx", "min");
-		LASSERT(tmpstr + tmpsiz - s > 0);
+		LASSERT (tmpstr + tmpsiz - s > 0);
 	} else {
 		lnet_ni_t         *ni   = NULL;
 		int                skip = *ppos - 1;

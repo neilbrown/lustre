@@ -748,7 +748,7 @@ void lnet_unregister_lnd(lnd_t *lnd);
 int lnet_connect(struct socket **sockp, lnet_nid_t peer_nid,
 		 __u32 local_ip, __u32 peer_ip, int peer_port);
 void lnet_connect_console_error(int rc, lnet_nid_t peer_nid,
-				__u32 peer_ip, int port);
+                                __u32 peer_ip, int port);
 int lnet_count_acceptor_nets(void);
 int lnet_acceptor_timeout(void);
 int lnet_acceptor_port(void);

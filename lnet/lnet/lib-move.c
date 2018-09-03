@@ -584,13 +584,14 @@ lnet_ni_recv(lnet_ni_t *ni, void *private, lnet_msg_t *msg, int delayed,
 			iov  = msg->msg_iov;
 			kiov = msg->msg_kiov;
 
-			LASSERT(niov > 0);
-			LASSERT((iov == NULL) != (kiov == NULL));
+			LASSERT (niov > 0);
+			LASSERT ((iov == NULL) != (kiov == NULL));
 		}
 	}
 
 	rc = (ni->ni_net->net_lnd->lnd_recv)(ni, private, msg, delayed,
-					     niov, iov, kiov, offset, mlen, rlen);
+					     niov, iov, kiov, offset, mlen,
+					     rlen);
 	if (rc < 0)
 		lnet_finalize(ni, msg, rc);
 }
@@ -697,12 +698,13 @@ lnet_ni_query_locked(lnet_ni_t *ni, lnet_peer_t *lp)
 static inline int
 lnet_peer_is_alive (lnet_peer_t *lp, cfs_time_t now)
 {
-	int	   alive;
+	int        alive;
 	cfs_time_t deadline;
 
-	LASSERT(lnet_peer_aliveness_enabled(lp));
+	LASSERT (lnet_peer_aliveness_enabled(lp));
 
-	/* Trust lnet_notify() if it has more recent aliveness news, but
+	/*
+	 * Trust lnet_notify() if it has more recent aliveness news, but
 	 * ignore the initial assumed death (see lnet_peers_start_down()).
 	 */
 	if (!lp->lp_alive && lp->lp_alive_count > 0 &&
@@ -715,7 +717,8 @@ lnet_peer_is_alive (lnet_peer_t *lp, cfs_time_t now)
 					lct_peer_timeout));
 	alive = cfs_time_after(deadline, now);
 
-	/* Update obsolete lp_alive except for routers assumed to be dead
+	/*
+	 * Update obsolete lp_alive except for routers assumed to be dead
 	 * initially, because router checker would update aliveness in this
 	 * case, and moreover lp_last_alive at peer creation is assumed.
 	 */
@@ -1341,7 +1344,7 @@ lnet_send(lnet_nid_t src_nid, lnet_msg_t *msg, lnet_nid_t rtr_nid)
 			/* ENOMEM or shutting down */
 			return rc;
 		}
-		LASSERT(lp->lp_net == src_ni->ni_net);
+		LASSERT (lp->lp_net == src_ni->ni_net);
 	} else {
 		/* sending to a remote network */
 		lp = lnet_find_route_locked(src_ni != NULL ?
@@ -1385,7 +1388,7 @@ lnet_send(lnet_nid_t src_nid, lnet_msg_t *msg, lnet_nid_t rtr_nid)
 			LASSERT(src_ni != NULL);
 			src_nid = src_ni->ni_nid;
 		} else {
-			LASSERT(src_ni->ni_net == lp->lp_net);
+			LASSERT (src_ni->ni_net == lp->lp_net);
 			lnet_ni_decref_locked(src_ni, cpt);
 		}
 

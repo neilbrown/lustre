@@ -702,8 +702,8 @@ lnet_unprepare (void)
 lnet_ni_t  *
 lnet_net2ni_locked(__u32 net_id, int cpt)
 {
-	struct lnet_ni   *ni;
-	struct lnet_net  *net;
+	struct lnet_ni	 *ni;
+	struct lnet_net	 *net;
 
 	LASSERT(cpt != LNET_LOCK_EX);
 
@@ -870,7 +870,7 @@ lnet_islocalnid(lnet_nid_t nid)
 }
 
 int
-lnet_count_acceptor_nets (void)
+lnet_count_acceptor_nets(void)
 {
 	/* Return the # of NIs that need the acceptor. */
 	int		 count = 0;

@@ -154,7 +154,8 @@ lnet_ni_notify_locked(lnet_ni_t *ni, lnet_peer_t *lp)
 			/* A new notification could happen now; I'll handle it
 			 * when control returns to me */
 
-			(ni->ni_net->net_lnd->lnd_notify)(ni, lp->lp_nid, alive);
+			(ni->ni_net->net_lnd->lnd_notify)(ni, lp->lp_nid,
+							  alive);
 
 			lnet_net_lock(lp->lp_cpt);
 		}
