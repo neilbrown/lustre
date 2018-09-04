@@ -537,7 +537,7 @@ int  lnet_rtrpools_adjust(int tiny, int small, int large);
 int lnet_rtrpools_enable(void);
 void lnet_rtrpools_disable(void);
 void lnet_rtrpools_free(int keep_pools);
-lnet_remotenet_t *lnet_find_net_locked (__u32 net);
+lnet_remotenet_t *lnet_find_rnet_locked(__u32 net);
 int lnet_dyn_add_ni(lnet_pid_t requested_pid,
 		    struct lnet_ioctl_config_data *conf);
 int lnet_dyn_del_ni(__u32 net);

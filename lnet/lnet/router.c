@@ -217,7 +217,7 @@ lnet_rtr_decref_locked(lnet_peer_t *lp)
 }
 
 lnet_remotenet_t *
-lnet_find_net_locked (__u32 net)
+lnet_find_rnet_locked(__u32 net)
 {
 	lnet_remotenet_t *rnet;
 	struct list_head *tmp;
@@ -355,7 +355,7 @@ lnet_add_route(__u32 net, __u32 hops, lnet_nid_t gateway,
 
 	LASSERT(!the_lnet.ln_shutdown);
 
-	rnet2 = lnet_find_net_locked(net);
+	rnet2 = lnet_find_rnet_locked(net);
 	if (rnet2 == NULL) {
 		/* new network */
 		list_add_tail(&rnet->lrn_list, lnet_net2rnethash(net));
