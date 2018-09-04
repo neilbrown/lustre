@@ -1417,6 +1417,12 @@ lnet_startup_lndnet(struct lnet_net *net, struct lnet_lnd_tunables *tun)
 	int			ni_count = 0;
 	__u32			lnd_type;
 	lnd_t			*lnd;
+	int			peer_timeout =
+		net->net_tunables.lct_peer_timeout;
+	int			maxtxcredits =
+		net->net_tunables.lct_max_tx_credits;
+	int			peerrtrcredits =
+		net->net_tunables.lct_peer_rtr_credits;
 
 	INIT_LIST_HEAD(&local_ni_list);
 
@@ -1515,6 +1521,9 @@ lnet_startup_lndnet(struct lnet_net *net, struct lnet_lnd_tunables *tun)
 
 		rc = lnet_startup_lndni(ni, tun);
 
+		LASSERT(ni->ni_net->net_tunables.lct_peer_timeout <= 0 ||
+			ni->ni_net->net_lnd->lnd_query != NULL);
+
 		if (rc < 0)
 			goto failed1;
 
@@ -1532,9 +1541,23 @@ lnet_startup_lndnet(struct lnet_net *net, struct lnet_lnd_tunables *tun)
 	 * it around after we're done. Free it. Otherwise add that
 	 * net to the global the_lnet.ln_nets */
 	if (net_l != net && net_l != NULL) {
+		/*
+		 * TODO - note. currently the tunables can not be updated
+		 * once added
+		 */
 		lnet_net_free(net);
 	} else {
 		net->net_state = LNET_NET_STATE_ACTIVE;
+		/*
+		 * restore tunables after it has been overwitten by the
+		 * lnd
+		 */
+		if (peer_timeout != -1)
+			net->net_tunables.lct_peer_timeout = peer_timeout;
+		if (maxtxcredits != -1)
+			net->net_tunables.lct_max_tx_credits = maxtxcredits;
+		if (peerrtrcredits != -1)
+			net->net_tunables.lct_peer_rtr_credits = peerrtrcredits;
 
 		lnet_net_lock(LNET_LOCK_EX);
 		list_add_tail(&net->net_list, &the_lnet.ln_nets);
