@@ -2016,7 +2016,7 @@ lnet_get_next_ni_locked(struct lnet_net *mynet, struct lnet_ni *prev)
 	return ni;
 }
 
-static int
+int
 lnet_get_net_config(struct lnet_ioctl_config_data *config)
 {
 	struct lnet_ni *ni;
