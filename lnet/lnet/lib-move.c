@@ -1277,12 +1277,9 @@ lnet_send(lnet_nid_t src_nid, lnet_msg_t *msg, lnet_nid_t rtr_nid)
 	cpt = lnet_cpt_of_nid(rtr_nid == LNET_NID_ANY ? dst_nid : rtr_nid,
 			      local_ni);
  again:
-	lnet_net_lock(cpt);
-
-	if (the_lnet.ln_shutdown) {
-		lnet_net_unlock(cpt);
+	if (the_lnet.ln_shutdown)
 		return -ESHUTDOWN;
-	}
+	lnet_net_lock(cpt);
 
 	if (src_nid == LNET_NID_ANY) {
 		src_ni = NULL;
