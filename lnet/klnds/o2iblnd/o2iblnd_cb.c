@@ -2276,7 +2276,7 @@ kiblnd_passive_connect(struct rdma_cm_id *cmid, void *priv, int priv_nob)
 	}
 
 	nid = reqmsg->ibm_srcnid;
-	ni  = lnet_net2ni(LNET_NIDNET(reqmsg->ibm_dstnid));
+	ni  = lnet_nid2ni_addref(reqmsg->ibm_dstnid);
 
 	if (ni != NULL) {
 		net = (kib_net_t *)ni->ni_data;

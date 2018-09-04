@@ -491,6 +491,7 @@ extern int avoid_asym_router_failure;
 extern int lnet_cpt_of_nid_locked(lnet_nid_t nid, struct lnet_ni *ni);
 extern int lnet_cpt_of_nid(lnet_nid_t nid, struct lnet_ni *ni);
 extern lnet_ni_t *lnet_nid2ni_locked(lnet_nid_t nid, int cpt);
+extern lnet_ni_t *lnet_nid2ni_addref(lnet_nid_t nid);
 extern lnet_ni_t *lnet_net2ni_locked(__u32 net, int cpt);
 extern lnet_ni_t *lnet_net2ni(__u32 net);
 bool lnet_is_ni_healthy_locked(struct lnet_ni *ni);

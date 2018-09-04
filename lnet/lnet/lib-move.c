@@ -1305,11 +1305,7 @@ lnet_send(lnet_nid_t src_nid, lnet_msg_t *msg, lnet_nid_t rtr_nid)
 		if (src_ni == NULL) {
 			src_ni = local_ni;
 			src_nid = src_ni->ni_nid;
-		} else if (src_ni == local_ni) {
-			lnet_ni_decref_locked(local_ni, cpt);
-		} else {
-			lnet_ni_decref_locked(local_ni, cpt);
-			lnet_ni_decref_locked(src_ni, cpt);
+		} else if (src_ni != local_ni) {
 			lnet_net_unlock(cpt);
 			LCONSOLE_WARN("No route to %s via from %s\n",
 				      libcfs_nid2str(dst_nid),
@@ -1327,16 +1323,10 @@ lnet_send(lnet_nid_t src_nid, lnet_msg_t *msg, lnet_nid_t rtr_nid)
 			/* No send credit hassles with LOLND */
 			lnet_net_unlock(cpt);
 			lnet_ni_send(src_ni, msg);
-
-			lnet_net_lock(cpt);
-			lnet_ni_decref_locked(src_ni, cpt);
-			lnet_net_unlock(cpt);
 			return 0;
 		}
 
 		rc = lnet_nid2peer_locked(&lp, dst_nid, cpt);
-		/* lp has ref on src_ni; lose mine */
-		lnet_ni_decref_locked(src_ni, cpt);
 		if (rc != 0) {
 			lnet_net_unlock(cpt);
 			LCONSOLE_WARN("Error %d finding peer %s\n", rc,
@@ -1351,8 +1341,6 @@ lnet_send(lnet_nid_t src_nid, lnet_msg_t *msg, lnet_nid_t rtr_nid)
 					    src_ni->ni_net : NULL,
 					    dst_nid, rtr_nid);
 		if (lp == NULL) {
-			if (src_ni != NULL)
-				lnet_ni_decref_locked(src_ni, cpt);
 			lnet_net_unlock(cpt);
 
 			LCONSOLE_WARN("No route to %s via %s "
@@ -1369,8 +1357,6 @@ lnet_send(lnet_nid_t src_nid, lnet_msg_t *msg, lnet_nid_t rtr_nid)
 		if (rtr_nid != lp->lp_nid) {
 			cpt2 = lp->lp_cpt;
 			if (cpt2 != cpt) {
-				if (src_ni != NULL)
-					lnet_ni_decref_locked(src_ni, cpt);
 				lnet_net_unlock(cpt);
 
 				rtr_nid = lp->lp_nid;
@@ -1389,7 +1375,6 @@ lnet_send(lnet_nid_t src_nid, lnet_msg_t *msg, lnet_nid_t rtr_nid)
 			src_nid = src_ni->ni_nid;
 		} else {
 			LASSERT (src_ni->ni_net == lp->lp_net);
-			lnet_ni_decref_locked(src_ni, cpt);
 		}
 
 		lnet_peer_addref_locked(lp);
