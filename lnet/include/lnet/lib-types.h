@@ -329,7 +329,7 @@ typedef struct lnet_ni {
 	int			**ni_refs;
 
 	/* when I was last alive */
-	time64_t		ni_last_alive;
+	long			ni_last_alive;
 
 	/* pointer to parent network */
 	struct lnet_net		*ni_net;
