@@ -266,6 +266,17 @@ struct lnet_tx_queue {
 	struct list_head	tq_delayed;	/* delayed TXs */
 };
 
+enum lnet_net_state {
+	/* set when net block is allocated */
+	LNET_NET_STATE_INIT = 0,
+	/* set when NIs in net are started successfully */
+	LNET_NET_STATE_ACTIVE,
+	/* set if all NIs in net are in FAILED state */
+	LNET_NET_STATE_INACTIVE,
+	/* set when shutting down a NET */
+	LNET_NET_STATE_DELETING
+};
+
 struct lnet_net {
 	/* chain on the ln_nets */
 	struct list_head	net_list;
@@ -302,6 +313,9 @@ struct lnet_net {
 
 	/* dying LND instances */
 	struct list_head	net_ni_zombie;
+
+	/* network state */
+	enum lnet_net_state	net_state;
 };
 
 typedef struct lnet_ni {
