@@ -586,7 +586,6 @@ lnet_prepare(lnet_pid_t requested_pid)
 	INIT_LIST_HEAD(&the_lnet.ln_test_peers);
 	INIT_LIST_HEAD(&the_lnet.ln_nets);
 	INIT_LIST_HEAD(&the_lnet.ln_nis_cpt);
-	INIT_LIST_HEAD(&the_lnet.ln_nis_zombie);
 	INIT_LIST_HEAD(&the_lnet.ln_routers);
 	INIT_LIST_HEAD(&the_lnet.ln_drop_rules);
 	INIT_LIST_HEAD(&the_lnet.ln_delay_rules);
@@ -669,7 +668,6 @@ lnet_unprepare (void)
 	LASSERT(list_empty(&the_lnet.ln_test_peers));
 	LASSERT(list_empty(&the_lnet.ln_nets));
 	LASSERT(list_empty(&the_lnet.ln_nis_cpt));
-	LASSERT(list_empty(&the_lnet.ln_nis_zombie));
 
 	lnet_portals_destroy();
 
@@ -1152,32 +1150,35 @@ lnet_ni_unlink_locked(lnet_ni_t *ni)
 
 	/* move it to zombie list and nobody can find it anymore */
 	LASSERT(!list_empty(&ni->ni_netlist));
-	list_move(&ni->ni_netlist, &the_lnet.ln_nis_zombie);
+	list_move(&ni->ni_netlist, &ni->ni_net->net_ni_zombie);
 	lnet_ni_decref_locked(ni, 0);
 }
 
 static void
-lnet_clear_zombies_nis_locked(void)
+lnet_clear_zombies_nis_locked(struct lnet_net *net)
 {
 	int		i;
 	int		islo;
 	lnet_ni_t	*ni;
+	struct list_head *zombie_list = &net->net_ni_zombie;
 
-	/* Now wait for the NI's I just nuked to show up on ln_zombie_nis
-	 * and shut them down in guaranteed thread context */
+	/*
+	 * Now wait for the NIs I just nuked to show up on the zombie
+	 * list and shut them down in guaranteed thread context
+	 */
 	i = 2;
-	while (!list_empty(&the_lnet.ln_nis_zombie)) {
+	while (!list_empty(zombie_list)) {
 		int	*ref;
 		int	j;
 
-		ni = list_entry(the_lnet.ln_nis_zombie.next,
+		ni = list_entry(zombie_list->next,
 				lnet_ni_t, ni_netlist);
 		list_del_init(&ni->ni_netlist);
 		cfs_percpt_for_each(ref, j, ni->ni_refs) {
 			if (*ref == 0)
 				continue;
 			/* still busy, add it back to zombie list */
-			list_add(&ni->ni_netlist, &the_lnet.ln_nis_zombie);
+			list_add(&ni->ni_netlist, zombie_list);
 			break;
 		}
 
@@ -1195,16 +1196,12 @@ lnet_clear_zombies_nis_locked(void)
 			continue;
 		}
 
-		ni->ni_net->net_lnd->lnd_refcount--;
 		lnet_net_unlock(LNET_LOCK_EX);
 
 		islo = ni->ni_net->net_lnd->lnd_type == LOLND;
 
 		LASSERT(!in_interrupt());
-		(ni->ni_net->net_lnd->lnd_shutdown)(ni);
-
-		/* can't deref lnd anymore now; it might have unregistered
-		 * itself...  */
+		(net->net_lnd->lnd_shutdown)(ni);
 
 		if (!islo)
 			CDEBUG(D_LNI, "Removed LNI %s\n",
@@ -1217,10 +1214,12 @@ lnet_clear_zombies_nis_locked(void)
 }
 
 static void
-lnet_shutdown_lndnis(void)
+lnet_shutdown_lndnet(struct lnet_net *net);
+
+static void
+lnet_shutdown_lndnets(void)
 {
 	int		i;
-	lnet_ni_t	*ni;
 	struct lnet_net *net;
 
 	/* NB called holding the global mutex */
@@ -1228,29 +1227,34 @@ lnet_shutdown_lndnis(void)
 	/* All quiet on the API front */
 	LASSERT(!the_lnet.ln_shutdown);
 	LASSERT(the_lnet.ln_refcount == 0);
-	LASSERT(list_empty(&the_lnet.ln_nis_zombie));
 
 	lnet_net_lock(LNET_LOCK_EX);
 	the_lnet.ln_shutdown = 1;	/* flag shutdown */
 
-	/* Unlink NIs from the global table */
 	while (!list_empty(&the_lnet.ln_nets)) {
+		/*
+		 * move the nets to the zombie list to avoid them being
+		 * picked up for new work. LONET is also included in the
+		 * Nets that will be moved to the zombie list
+		 */
 		net = list_entry(the_lnet.ln_nets.next,
 				 struct lnet_net, net_list);
-		while (!list_empty(&net->net_ni_list)) {
-			ni = list_entry(net->net_ni_list.next,
-					lnet_ni_t, ni_netlist);
-			lnet_ni_unlink_locked(ni);
-		}
+		list_move(&net->net_list, &the_lnet.ln_net_zombie);
 	}
 
-	/* Drop the cached loopback NI. */
+	/* Drop the cached loopback Net. */
 	if (the_lnet.ln_loni != NULL) {
 		lnet_ni_decref_locked(the_lnet.ln_loni, 0);
 		the_lnet.ln_loni = NULL;
 	}
-
 	lnet_net_unlock(LNET_LOCK_EX);
+
+	/* iterate through the net zombie list and delete each net */
+	while (!list_empty(&the_lnet.ln_net_zombie)) {
+		net = list_entry(the_lnet.ln_net_zombie.next,
+				 struct lnet_net, net_list);
+		lnet_shutdown_lndnet(net);
+	}
 
 	/* Clear lazy portals and drop delayed messages which hold refs
 	 * on their lnet_msg_t::msg_rxpeer */
@@ -1262,8 +1266,6 @@ lnet_shutdown_lndnis(void)
 	lnet_peer_tables_cleanup(NULL);
 
 	lnet_net_lock(LNET_LOCK_EX);
-
-	lnet_clear_zombies_nis_locked();
 	the_lnet.ln_shutdown = 0;
 	lnet_net_unlock(LNET_LOCK_EX);
 }
@@ -1273,6 +1275,7 @@ static void
 lnet_shutdown_lndni(struct lnet_ni *ni)
 {
 	int i;
+	struct lnet_net *net = ni->ni_net;
 
 	lnet_net_lock(LNET_LOCK_EX);
 	lnet_ni_unlink_locked(ni);
@@ -1286,7 +1289,7 @@ lnet_shutdown_lndni(struct lnet_ni *ni)
 	lnet_peer_tables_cleanup(ni);
 
 	lnet_net_lock(LNET_LOCK_EX);
-	lnet_clear_zombies_nis_locked();
+	lnet_clear_zombies_nis_locked(net);
 	lnet_net_unlock(LNET_LOCK_EX);
 }
 
@@ -1500,7 +1503,7 @@ lnet_startup_lndnets(struct list_head *netlist)
 
 	return ni_count;
 failed:
-	lnet_shutdown_lndnis();
+	lnet_shutdown_lndnets();
 
 	return rc;
 }
@@ -1548,6 +1551,7 @@ int lnet_lib_init(void)
 	the_lnet.ln_refcount = 0;
 	LNetInvalidateHandle(&the_lnet.ln_rc_eqh);
 	INIT_LIST_HEAD(&the_lnet.ln_lnds);
+	INIT_LIST_HEAD(&the_lnet.ln_net_zombie);
 	INIT_LIST_HEAD(&the_lnet.ln_rcd_zombie);
 	INIT_LIST_HEAD(&the_lnet.ln_rcd_deathrow);
 
@@ -1707,7 +1711,7 @@ err_destroy_routes:
 	if (!the_lnet.ln_nis_from_mod_params)
 		lnet_destroy_routes();
 err_shutdown_lndnis:
-	lnet_shutdown_lndnis();
+	lnet_shutdown_lndnets();
 err_empty_list:
 	lnet_unprepare();
 	LASSERT(rc < 0);
@@ -1755,7 +1759,7 @@ LNetNIFini()
 
 		lnet_acceptor_stop();
 		lnet_destroy_routes();
-		lnet_shutdown_lndnis();
+		lnet_shutdown_lndnets();
 		lnet_unprepare();
 	}
 

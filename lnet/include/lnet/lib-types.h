@@ -299,6 +299,9 @@ struct lnet_net {
 
 	/* list of NIs on this net */
 	struct list_head	net_ni_list;
+
+	/* dying LND instances */
+	struct list_head	net_ni_zombie;
 };
 
 typedef struct lnet_ni {
@@ -663,10 +666,10 @@ typedef struct
 	struct list_head		ln_nets;
 	/* NIs bond on specific CPT(s) */
 	struct list_head		ln_nis_cpt;
-	/* dying LND instances */
-	struct list_head		ln_nis_zombie;
 	/* the loopback NI */
 	struct lnet_ni			*ln_loni;
+	/* network zombie list */
+	struct list_head		ln_net_zombie;
 
 	/* remote networks with routes to them */
 	struct list_head		*ln_remote_nets_hash;
