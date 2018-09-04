@@ -335,7 +335,7 @@ typedef struct lnet_ni {
 	/* chain on the lnet_net structure */
 	struct list_head	ni_netlist;
 
-	/* chain on ln_nis_cpt */
+	/* chain on net_ni_cpt */
 	struct list_head	ni_cptlist;
 
 	spinlock_t		ni_lock;
@@ -694,8 +694,6 @@ typedef struct
 	struct list_head		ln_delay_rules;
 	/* LND instances */
 	struct list_head		ln_nets;
-	/* NIs bond on specific CPT(s) */
-	struct list_head		ln_nis_cpt;
 	/* the loopback NI */
 	struct lnet_ni			*ln_loni;
 	/* network zombie list */
