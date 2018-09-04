@@ -1291,10 +1291,8 @@ lnet_shutdown_lndni(struct lnet_ni *ni)
 }
 
 static int
-lnet_startup_lndni(struct lnet_ni *ni, struct lnet_ioctl_config_data *conf)
+lnet_startup_lndni(struct lnet_ni *ni, struct lnet_lnd_tunables *tun)
 {
-	struct lnet_ioctl_config_lnd_tunables *lnd_tunables = NULL;
-	struct lnet_lnd_tunables *tun = NULL;
 	int			rc = -EINVAL;
 	__u32			lnd_type;
 	lnd_t			*lnd;
@@ -1359,31 +1357,10 @@ lnet_startup_lndni(struct lnet_ni *ni, struct lnet_ioctl_config_data *conf)
 
 	ni->ni_net->net_lnd = lnd;
 
-	if (conf && conf->cfg_hdr.ioc_len > sizeof(*conf)) {
-		lnd_tunables = (struct lnet_ioctl_config_lnd_tunables *)conf->cfg_bulk;
-		tun = &lnd_tunables->lt_tun;
-	}
 
 	if (tun) {
 		memcpy(&ni->ni_lnd_tunables, tun, sizeof(*tun));
 		ni->ni_lnd_tunables_set = true;
-	}
-
-	/* If given some LND tunable parameters, parse those now to
-	 * override the values in the NI structure. */
-	if (conf) {
-		if (conf->cfg_config_u.cfg_net.net_peer_rtr_credits >= 0)
-			ni->ni_net->net_tunables.lct_peer_rtr_credits =
-				conf->cfg_config_u.cfg_net.net_peer_rtr_credits;
-		if (conf->cfg_config_u.cfg_net.net_peer_timeout >= 0)
-			ni->ni_net->net_tunables.lct_peer_timeout =
-				conf->cfg_config_u.cfg_net.net_peer_timeout;
-		if (conf->cfg_config_u.cfg_net.net_peer_tx_credits >= 0)
-			ni->ni_net->net_tunables.lct_peer_tx_credits =
-				conf->cfg_config_u.cfg_net.net_peer_tx_credits;
-		if (conf->cfg_config_u.cfg_net.net_max_tx_credits >= 0)
-			ni->ni_net->net_tunables.lct_max_tx_credits =
-				conf->cfg_config_u.cfg_net.net_max_tx_credits;
 	}
 
 	rc = (lnd->lnd_startup)(ni);
@@ -1891,9 +1868,6 @@ lnet_get_net_config(struct lnet_ioctl_config_data *config)
 	int rc = -ENOENT;
 	int idx = config->cfg_count;
 
-	if (unlikely(!config->cfg_bulk))
-		return -EINVAL;
-
 	cpt = lnet_net_lock_current();
 
 	ni = lnet_get_ni_idx_locked(idx);
@@ -1920,8 +1894,12 @@ lnet_dyn_add_ni(lnet_pid_t requested_pid, struct lnet_ioctl_config_data *conf)
 	struct list_head	net_head;
 	int			rc;
 	lnet_remotenet_t	*rnet;
+	struct lnet_ioctl_config_lnd_tunables *lnd_tunables = NULL;
 
 	INIT_LIST_HEAD(&net_head);
+
+	if (conf && conf->cfg_hdr.ioc_len > sizeof(*conf))
+		lnd_tunables = (struct lnet_ioctl_config_lnd_tunables *)conf->cfg_bulk;
 
 	/* Create a net/ni structures for the network string */
 	rc = lnet_parse_networks(&net_head, nets);
@@ -1955,9 +1933,14 @@ lnet_dyn_add_ni(lnet_pid_t requested_pid, struct lnet_ioctl_config_data *conf)
 		goto failed0;
 
 	list_del_init(&net->net_list);
+	if (lnd_tunables)
+		memcpy(&net->net_tunables,
+		       &lnd_tunables->lt_cmn, sizeof(lnd_tunables->lt_cmn));
+
 	ni = list_first_entry(&net->net_ni_list, struct lnet_ni, ni_netlist);
-	rc = lnet_startup_lndni(ni, conf);
-	if (rc != 0)
+	rc = lnet_startup_lndni(ni,
+				 (lnd_tunables) ? &lnd_tunables->lt_tun : NULL);
+	if (rc < 0)
 		goto failed1;
 
 	if (ni->ni_net->net_lnd->lnd_accept != NULL) {
