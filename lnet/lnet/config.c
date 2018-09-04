@@ -115,6 +115,21 @@ lnet_ni_unique_net(struct list_head *nilist, char *iface)
 	return true;
 }
 
+/* check that the NI is unique to the interfaces with in the same NI.
+ * This is only a consideration if use_tcp_bonding is set */
+static bool
+lnet_ni_unique_ni(char *iface_list[LNET_MAX_INTERFACES], char *iface)
+{
+	int i;
+	for (i = 0; i < LNET_MAX_INTERFACES; i++) {
+		if (iface_list[i] != NULL &&
+		    strncmp(iface_list[i], iface, strlen(iface)) == 0)
+			return false;
+	}
+
+	return true;
+}
+
 static bool
 in_array(__u32 *array, __u32 size, __u32 value)
 {
@@ -378,6 +393,9 @@ lnet_ni_add_interface(struct lnet_ni *ni, char *iface)
 	if (ni == NULL)
 		return -ENOMEM;
 
+	if (!lnet_ni_unique_ni(ni->ni_interfaces, iface))
+		return -EINVAL;
+
 	/* Allocate a separate piece of memory and copy
 	 * into it the string, so we don't have
 	 * a depencency on the tokens string.  This way we
@@ -503,7 +521,8 @@ failed:
  * nilist.
  */
 int
-lnet_parse_networks(struct list_head *netlist, char *networks)
+lnet_parse_networks(struct list_head *netlist, char *networks,
+		    bool use_tcp_bonding)
 {
 	struct cfs_expr_list *net_el = NULL;
 	struct cfs_expr_list *ni_el = NULL;
@@ -645,7 +664,8 @@ lnet_parse_networks(struct list_head *netlist, char *networks)
 		if (IS_ERR_OR_NULL(net))
 			goto failed;
 
-		if (!nistr) {
+		if (!nistr ||
+		    (use_tcp_bonding && LNET_NETTYP(net_id) == SOCKLND)) {
 			/*
 			 * No interface list was specified, allocate a
 			 * ni using the defaults.
@@ -654,11 +674,13 @@ lnet_parse_networks(struct list_head *netlist, char *networks)
 			if (IS_ERR_OR_NULL(ni))
 				goto failed;
 
-			if (net_el) {
-				cfs_expr_list_free(net_el);
-				net_el = NULL;
+			if (!nistr) {
+				if (net_el) {
+					cfs_expr_list_free(net_el);
+					net_el = NULL;
+				}
+				continue;
 			}
-			continue;
 		}
 
 		do {
