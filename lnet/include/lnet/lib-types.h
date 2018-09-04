@@ -277,6 +277,19 @@ enum lnet_net_state {
 	LNET_NET_STATE_DELETING
 };
 
+enum lnet_ni_state {
+	/* set when NI block is allocated */
+	LNET_NI_STATE_INIT = 0,
+	/* set when NI is started successfully */
+	LNET_NI_STATE_ACTIVE,
+	/* set when LND notifies NI failed */
+	LNET_NI_STATE_FAILED,
+	/* set when LND notifies NI degraded */
+	LNET_NI_STATE_DEGRADED,
+	/* set when shuttding down NI */
+	LNET_NI_STATE_DELETING
+};
+
 struct lnet_net {
 	/* chain on the ln_nets */
 	struct list_head	net_list;
@@ -353,6 +366,9 @@ typedef struct lnet_ni {
 
 	/* my health status */
 	lnet_ni_status_t	*ni_status;
+
+	/* NI FSM */
+	enum lnet_ni_state	ni_state;
 
 	/* per NI LND tunables */
 	struct lnet_lnd_tunables ni_lnd_tunables;
