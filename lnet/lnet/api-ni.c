@@ -1422,19 +1422,21 @@ lnet_startup_lndnet(struct lnet_net *net, struct lnet_lnd_tunables *tun)
 	__u32			lnd_type;
 	lnd_t			*lnd;
 
-	lnd_type = LNET_NETTYP(net->net_id);
-
 	INIT_LIST_HEAD(&local_ni_list);
-	LASSERT(libcfs_isknown_lnd(lnd_type));
-
-	if (lnd_type == CIBLND || lnd_type == OPENIBLND ||
-	    lnd_type == IIBLND || lnd_type == VIBLND) {
-		CERROR("LND %s obsoleted\n", libcfs_lnd2str(lnd_type));
-		goto failed0;
-	}
 
 	/* Make sure this new NI is unique. */
 	if (lnet_net_unique(net->net_id, &the_lnet.ln_nets)) {
+		lnd_type = LNET_NETTYP(net->net_id);
+
+		LASSERT(libcfs_isknown_lnd(lnd_type));
+
+		if (lnd_type == CIBLND || lnd_type == OPENIBLND ||
+		    lnd_type == IIBLND || lnd_type == VIBLND) {
+			CERROR("LND %s obsoleted\n", libcfs_lnd2str(lnd_type));
+			rc = -EINVAL;
+			goto failed0;
+		}
+
 		mutex_lock(&the_lnet.ln_lnd_mutex);
 		lnd = lnet_find_lnd_by_type(lnd_type);
 
