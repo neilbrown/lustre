@@ -1406,12 +1406,15 @@ static int
 lnet_startup_lndnet(struct lnet_net *net, struct lnet_lnd_tunables *tun)
 {
 	struct lnet_ni		*ni;
+	struct list_head	local_ni_list;
+	int			rc;
+	int			ni_count = 0;
 	__u32			lnd_type;
 	lnd_t			*lnd;
-	int			rc;
 
 	lnd_type = LNET_NETTYP(net->net_id);
 
+	INIT_LIST_HEAD(&local_ni_list);
 	LASSERT(libcfs_isknown_lnd(lnd_type));
 
 	if (lnd_type == CIBLND || lnd_type == OPENIBLND ||
@@ -1468,13 +1471,38 @@ lnet_startup_lndnet(struct lnet_net *net, struct lnet_lnd_tunables *tun)
 	net->net_lnd = lnd;
 	mutex_unlock(&the_lnet.ln_lnd_mutex);
 
-	ni = list_first_entry(&net->net_ni_list, struct lnet_ni, ni_netlist);
-
 	net->net_state = LNET_NET_STATE_ACTIVE;
-	rc = lnet_startup_lndni(ni, tun);
-	if (rc < 0)
-		return rc;
-	return 1;
+
+	while (!list_empty(&net->net_ni_added)) {
+		ni = list_entry(net->net_ni_added.next, struct lnet_ni,
+				ni_netlist);
+		list_del_init(&ni->ni_netlist);
+
+		rc = lnet_startup_lndni(ni, tun);
+
+		if (rc < 0)
+			goto failed1;
+
+		list_add_tail(&ni->ni_netlist, &local_ni_list);
+
+		ni_count++;
+	}
+	lnet_net_lock(LNET_LOCK_EX);
+	list_splice_tail(&local_ni_list, &net->net_ni_list);
+	lnet_net_unlock(LNET_LOCK_EX);
+	return ni_count;
+
+failed1:
+	/*
+	 * shutdown the new NIs that are being started up
+	 * free the NET being started
+	 */
+	while (!list_empty(&local_ni_list)) {
+		ni = list_entry(local_ni_list.next, struct lnet_ni,
+				ni_netlist);
+
+		lnet_shutdown_lndni(ni);
+	}
 
 failed0:
 	lnet_net_free(net);
