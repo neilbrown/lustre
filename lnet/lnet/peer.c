@@ -115,7 +115,7 @@ lnet_peer_table_cleanup_locked(lnet_ni_t *ni, struct lnet_peer_table *ptable)
 			list_del_init(&lp->lpni_hashlist);
 			/* Lose hash table's ref */
 			ptable->pt_zombies++;
-			lnet_peer_decref_locked(lp);
+			lnet_peer_ni_decref_locked(lp);
 		}
 	}
 }
@@ -210,7 +210,7 @@ lnet_peer_tables_cleanup(lnet_ni_t *ni)
 }
 
 void
-lnet_destroy_peer_locked(struct lnet_peer_ni *lp)
+lnet_destroy_peer_ni_locked(struct lnet_peer_ni *lp)
 {
 	struct lnet_peer_table *ptable;
 
@@ -242,7 +242,7 @@ lnet_find_peer_locked(struct lnet_peer_table *ptable, lnet_nid_t nid)
 	peers = &ptable->pt_hash[lnet_nid2peerhash(nid)];
 	list_for_each_entry(lp, peers, lpni_hashlist) {
 		if (lp->lpni_nid == nid) {
-			lnet_peer_addref_locked(lp);
+			lnet_peer_ni_addref_locked(lp);
 			return lp;
 		}
 	}
@@ -251,7 +251,7 @@ lnet_find_peer_locked(struct lnet_peer_table *ptable, lnet_nid_t nid)
 }
 
 int
-lnet_nid2peer_locked(struct lnet_peer_ni **lpp, lnet_nid_t nid, int cpt)
+lnet_nid2peerni_locked(struct lnet_peer_ni **lpp, lnet_nid_t nid, int cpt)
 {
 	struct lnet_peer_table	*ptable;
 	struct lnet_peer_ni		*lp = NULL;
@@ -359,7 +359,7 @@ lnet_debug_peer(lnet_nid_t nid)
 	cpt = lnet_cpt_of_nid(nid, NULL);
 	lnet_net_lock(cpt);
 
-	rc = lnet_nid2peer_locked(&lp, nid, cpt);
+	rc = lnet_nid2peerni_locked(&lp, nid, cpt);
 	if (rc != 0) {
 		lnet_net_unlock(cpt);
 		CDEBUG(D_WARNING, "No peer %s\n", libcfs_nid2str(nid));
@@ -375,7 +375,7 @@ lnet_debug_peer(lnet_nid_t nid)
 	       lp->lpni_rtrcredits, lp->lpni_minrtrcredits,
 	       lp->lpni_txcredits, lp->lpni_mintxcredits, lp->lpni_txqnob);
 
-	lnet_peer_decref_locked(lp);
+	lnet_peer_ni_decref_locked(lp);
 
 	lnet_net_unlock(cpt);
 }

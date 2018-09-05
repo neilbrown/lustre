@@ -1028,7 +1028,7 @@ lnet_return_tx_credits_locked(lnet_msg_t *msg)
 
 	if (txpeer != NULL) {
 		msg->msg_txpeer = NULL;
-		lnet_peer_decref_locked(txpeer);
+		lnet_peer_ni_decref_locked(txpeer);
 	}
 }
 
@@ -1149,7 +1149,7 @@ routing_off:
 	}
 	if (rxpeer != NULL) {
 		msg->msg_rxpeer = NULL;
-		lnet_peer_decref_locked(rxpeer);
+		lnet_peer_ni_decref_locked(rxpeer);
 	}
 }
 
@@ -1323,7 +1323,7 @@ lnet_send(lnet_nid_t src_nid, lnet_msg_t *msg, lnet_nid_t rtr_nid)
 			return 0;
 		}
 
-		rc = lnet_nid2peer_locked(&lp, dst_nid, cpt);
+		rc = lnet_nid2peerni_locked(&lp, dst_nid, cpt);
 		if (rc != 0) {
 			lnet_net_unlock(cpt);
 			LCONSOLE_WARN("Error %d finding peer %s\n", rc,
@@ -1374,7 +1374,7 @@ lnet_send(lnet_nid_t src_nid, lnet_msg_t *msg, lnet_nid_t rtr_nid)
 			LASSERT (src_ni->ni_net == lp->lpni_net);
 		}
 
-		lnet_peer_addref_locked(lp);
+		lnet_peer_ni_addref_locked(lp);
 
 		LASSERT(src_nid != LNET_NID_ANY);
 		lnet_msg_commit(msg, cpt);
@@ -1991,7 +1991,7 @@ lnet_parse(lnet_ni_t *ni, lnet_hdr_t *hdr, lnet_nid_t from_nid,
 	}
 
 	lnet_net_lock(cpt);
-	rc = lnet_nid2peer_locked(&msg->msg_rxpeer, from_nid, cpt);
+	rc = lnet_nid2peerni_locked(&msg->msg_rxpeer, from_nid, cpt);
 	if (rc != 0) {
 		lnet_net_unlock(cpt);
 		CERROR("%s, src %s: Dropping %s "

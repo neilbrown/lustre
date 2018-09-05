@@ -189,7 +189,7 @@ lnet_rtr_addref_locked(struct lnet_peer_ni *lp)
 
 		list_add(&lp->lpni_rtr_list, pos);
 		/* addref for the_lnet.ln_routers */
-		lnet_peer_addref_locked(lp);
+		lnet_peer_ni_addref_locked(lp);
 		the_lnet.ln_routers_version++;
 	}
 }
@@ -213,7 +213,7 @@ lnet_rtr_decref_locked(struct lnet_peer_ni *lp)
 
 		list_del(&lp->lpni_rtr_list);
 		/* decref for the_lnet.ln_routers */
-		lnet_peer_decref_locked(lp);
+		lnet_peer_ni_decref_locked(lp);
 		the_lnet.ln_routers_version++;
 	}
 }
@@ -340,7 +340,7 @@ lnet_add_route(__u32 net, __u32 hops, lnet_nid_t gateway,
 
 	lnet_net_lock(LNET_LOCK_EX);
 
-	rc = lnet_nid2peer_locked(&route->lr_gateway, gateway, LNET_LOCK_EX);
+	rc = lnet_nid2peerni_locked(&route->lr_gateway, gateway, LNET_LOCK_EX);
 	if (rc != 0) {
 		lnet_net_unlock(LNET_LOCK_EX);
 
@@ -379,7 +379,7 @@ lnet_add_route(__u32 net, __u32 hops, lnet_nid_t gateway,
 	}
 
 	if (add_route) {
-		lnet_peer_addref_locked(route->lr_gateway); /* +1 for notify */
+		lnet_peer_ni_addref_locked(route->lr_gateway); /* +1 for notify */
 		lnet_add_route_to_rnet(rnet2, route);
 
 		ni = lnet_get_next_ni_locked(route->lr_gateway->lpni_net, NULL);
@@ -393,7 +393,7 @@ lnet_add_route(__u32 net, __u32 hops, lnet_nid_t gateway,
 	}
 
 	/* -1 for notify or !add_route */
-	lnet_peer_decref_locked(route->lr_gateway);
+	lnet_peer_ni_decref_locked(route->lr_gateway);
 	lnet_net_unlock(LNET_LOCK_EX);
 
 	rc = 0;
@@ -519,7 +519,7 @@ again:
 				rnet = NULL;
 
 			lnet_rtr_decref_locked(gateway);
-			lnet_peer_decref_locked(gateway);
+			lnet_peer_ni_decref_locked(gateway);
 
 			lnet_net_unlock(LNET_LOCK_EX);
 
@@ -883,7 +883,7 @@ lnet_destroy_rc_data(lnet_rc_data_t *rcd)
 		int cpt = rcd->rcd_gateway->lpni_cpt;
 
 		lnet_net_lock(cpt);
-		lnet_peer_decref_locked(rcd->rcd_gateway);
+		lnet_peer_ni_decref_locked(rcd->rcd_gateway);
 		lnet_net_unlock(cpt);
 	}
 
@@ -942,7 +942,7 @@ lnet_create_rc_data_locked(struct lnet_peer_ni *gateway)
 		goto out;
 	}
 
-	lnet_peer_addref_locked(gateway);
+	lnet_peer_ni_addref_locked(gateway);
 	rcd->rcd_gateway = gateway;
 	gateway->lpni_rcd = rcd;
 	gateway->lpni_ping_notsent = 0;
@@ -983,7 +983,7 @@ lnet_ping_router_locked (struct lnet_peer_ni *rtr)
 	int             secs;
 	struct lnet_ni  *ni;
 
-	lnet_peer_addref_locked(rtr);
+	lnet_peer_ni_addref_locked(rtr);
 
 	if (rtr->lpni_ping_deadline != 0 && /* ping timed out? */
 	    cfs_time_after(now, rtr->lpni_ping_deadline))
@@ -996,7 +996,7 @@ lnet_ping_router_locked (struct lnet_peer_ni *rtr)
 	if (!lnet_isrouter(rtr) ||
 	    the_lnet.ln_rc_state != LNET_RC_STATE_RUNNING) {
 		/* router table changed or router checker is shutting down */
-		lnet_peer_decref_locked(rtr);
+		lnet_peer_ni_decref_locked(rtr);
 		return;
 	}
 
@@ -1046,7 +1046,7 @@ lnet_ping_router_locked (struct lnet_peer_ni *rtr)
 			rtr->lpni_ping_notsent = 0; /* no event pending */
 	}
 
-	lnet_peer_decref_locked(rtr);
+	lnet_peer_ni_decref_locked(rtr);
 	return;
 }
 
@@ -1783,7 +1783,7 @@ lnet_notify(lnet_ni_t *ni, lnet_nid_t nid, int alive, cfs_time_t when)
 	if (ni != NULL)
 		lnet_ni_notify_locked(ni, lp);
 
-	lnet_peer_decref_locked(lp);
+	lnet_peer_ni_decref_locked(lp);
 
 	lnet_net_unlock(cpt);
 	return 0;
