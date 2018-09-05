@@ -462,7 +462,7 @@ struct lnet_peer_ni {
 	/* network peer is on */
 	struct lnet_net		*lpni_net;
 	lnet_nid_t		lpni_nid;		/* peer's NID */
-	int			lpni_refcount;	/* # refs */
+	atomic_t		lpni_refcount;	/* # refs */
 	int			lpni_cpt;		/* CPT this peer attached on */
 	/* # refs from lnet_route_t::lr_gateway */
 	int			lpni_rtr_refcount;
