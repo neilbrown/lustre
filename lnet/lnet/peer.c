@@ -109,10 +109,10 @@ lnet_peer_table_cleanup_locked(lnet_ni_t *ni, struct lnet_peer_table *ptable)
 
 	for (i = 0; i < LNET_PEER_HASH_SIZE; i++) {
 		list_for_each_entry_safe(lp, tmp, &ptable->pt_hash[i],
-					 lp_hashlist) {
-			if (ni != NULL && ni->ni_net != lp->lp_net)
+					 lpni_hashlist) {
+			if (ni != NULL && ni->ni_net != lp->lpni_net)
 				continue;
-			list_del_init(&lp->lp_hashlist);
+			list_del_init(&lp->lpni_hashlist);
 			/* Lose hash table's ref */
 			ptable->pt_zombies++;
 			lnet_peer_decref_locked(lp);
@@ -146,22 +146,22 @@ lnet_peer_table_del_rtrs_locked(lnet_ni_t *ni, struct lnet_peer_table *ptable,
 {
 	lnet_peer_t	*lp;
 	lnet_peer_t	*tmp;
-	lnet_nid_t	 lp_nid;
+	lnet_nid_t	 lpni_nid;
 	int		 i;
 
 	for (i = 0; i < LNET_PEER_HASH_SIZE; i++) {
 		list_for_each_entry_safe(lp, tmp, &ptable->pt_hash[i],
-					 lp_hashlist) {
-			if (ni->ni_net != lp->lp_net)
+					 lpni_hashlist) {
+			if (ni->ni_net != lp->lpni_net)
 				continue;
 
-			if (lp->lp_rtr_refcount == 0)
+			if (lp->lpni_rtr_refcount == 0)
 				continue;
 
-			lp_nid = lp->lp_nid;
+			lpni_nid = lp->lpni_nid;
 
 			lnet_net_unlock(cpt_locked);
-			lnet_del_route(LNET_NIDNET(LNET_NID_ANY), lp_nid);
+			lnet_del_route(LNET_NIDNET(LNET_NID_ANY), lpni_nid);
 			lnet_net_lock(cpt_locked);
 		}
 	}
@@ -203,8 +203,8 @@ lnet_peer_tables_cleanup(lnet_ni_t *ni)
 	}
 
 	while (!list_empty(&deathrow)) {
-		lp = list_entry(deathrow.next, lnet_peer_t, lp_hashlist);
-		list_del(&lp->lp_hashlist);
+		lp = list_entry(deathrow.next, lnet_peer_t, lpni_hashlist);
+		list_del(&lp->lpni_hashlist);
 		LIBCFS_FREE(lp, sizeof(*lp));
 	}
 }
@@ -214,19 +214,19 @@ lnet_destroy_peer_locked(lnet_peer_t *lp)
 {
 	struct lnet_peer_table *ptable;
 
-	LASSERT(lp->lp_refcount == 0);
-	LASSERT(lp->lp_rtr_refcount == 0);
-	LASSERT(list_empty(&lp->lp_txq));
-	LASSERT(list_empty(&lp->lp_hashlist));
-	LASSERT(lp->lp_txqnob == 0);
+	LASSERT(lp->lpni_refcount == 0);
+	LASSERT(lp->lpni_rtr_refcount == 0);
+	LASSERT(list_empty(&lp->lpni_txq));
+	LASSERT(list_empty(&lp->lpni_hashlist));
+	LASSERT(lp->lpni_txqnob == 0);
 
-	ptable = the_lnet.ln_peer_tables[lp->lp_cpt];
+	ptable = the_lnet.ln_peer_tables[lp->lpni_cpt];
 	LASSERT(ptable->pt_number > 0);
 	ptable->pt_number--;
 
-	lp->lp_net = NULL;
+	lp->lpni_net = NULL;
 
-	list_add(&lp->lp_hashlist, &ptable->pt_deathrow);
+	list_add(&lp->lpni_hashlist, &ptable->pt_deathrow);
 	LASSERT(ptable->pt_zombies > 0);
 	ptable->pt_zombies--;
 }
@@ -240,8 +240,8 @@ lnet_find_peer_locked(struct lnet_peer_table *ptable, lnet_nid_t nid)
 	LASSERT(!the_lnet.ln_shutdown);
 
 	peers = &ptable->pt_hash[lnet_nid2peerhash(nid)];
-	list_for_each_entry(lp, peers, lp_hashlist) {
-		if (lp->lp_nid == nid) {
+	list_for_each_entry(lp, peers, lpni_hashlist) {
+		if (lp->lpni_nid == nid) {
 			lnet_peer_addref_locked(lp);
 			return lp;
 		}
@@ -275,8 +275,8 @@ lnet_nid2peer_locked(lnet_peer_t **lpp, lnet_nid_t nid, int cpt)
 
 	if (!list_empty(&ptable->pt_deathrow)) {
 		lp = list_entry(ptable->pt_deathrow.next,
-				lnet_peer_t, lp_hashlist);
-		list_del(&lp->lp_hashlist);
+				lnet_peer_t, lpni_hashlist);
+		list_del(&lp->lpni_hashlist);
 	}
 
 	/*
@@ -297,24 +297,24 @@ lnet_nid2peer_locked(lnet_peer_t **lpp, lnet_nid_t nid, int cpt)
 		goto out;
 	}
 
-	INIT_LIST_HEAD(&lp->lp_txq);
-	INIT_LIST_HEAD(&lp->lp_rtrq);
-	INIT_LIST_HEAD(&lp->lp_routes);
+	INIT_LIST_HEAD(&lp->lpni_txq);
+	INIT_LIST_HEAD(&lp->lpni_rtrq);
+	INIT_LIST_HEAD(&lp->lpni_routes);
 
-	lp->lp_notify = 0;
-	lp->lp_notifylnd = 0;
-	lp->lp_notifying = 0;
-	lp->lp_alive_count = 0;
-	lp->lp_timestamp = 0;
-	lp->lp_alive = !lnet_peers_start_down(); /* 1 bit!! */
-	lp->lp_last_alive = cfs_time_current(); /* assumes alive */
-	lp->lp_last_query = 0; /* haven't asked NI yet */
-	lp->lp_ping_timestamp = 0;
-	lp->lp_ping_feats = LNET_PING_FEAT_INVAL;
-	lp->lp_nid = nid;
-	lp->lp_cpt = cpt2;
-	lp->lp_refcount = 2;	/* 1 for caller; 1 for hash */
-	lp->lp_rtr_refcount = 0;
+	lp->lpni_notify = 0;
+	lp->lpni_notifylnd = 0;
+	lp->lpni_notifying = 0;
+	lp->lpni_alive_count = 0;
+	lp->lpni_timestamp = 0;
+	lp->lpni_alive = !lnet_peers_start_down(); /* 1 bit!! */
+	lp->lpni_last_alive = cfs_time_current(); /* assumes alive */
+	lp->lpni_last_query = 0; /* haven't asked NI yet */
+	lp->lpni_ping_timestamp = 0;
+	lp->lpni_ping_feats = LNET_PING_FEAT_INVAL;
+	lp->lpni_nid = nid;
+	lp->lpni_cpt = cpt2;
+	lp->lpni_refcount = 2;	/* 1 for caller; 1 for hash */
+	lp->lpni_rtr_refcount = 0;
 
 	lnet_net_lock(cpt);
 
@@ -329,13 +329,13 @@ lnet_nid2peer_locked(lnet_peer_t **lpp, lnet_nid_t nid, int cpt)
 		goto out;
 	}
 
-	lp->lp_net = lnet_get_net_locked(LNET_NIDNET(lp->lp_nid));
-	lp->lp_txcredits    =
-	lp->lp_mintxcredits = lp->lp_net->net_tunables.lct_peer_tx_credits;
-	lp->lp_rtrcredits    =
-	lp->lp_minrtrcredits = lnet_peer_buffer_credits(lp->lp_net);
+	lp->lpni_net = lnet_get_net_locked(LNET_NIDNET(lp->lpni_nid));
+	lp->lpni_txcredits    =
+	lp->lpni_mintxcredits = lp->lpni_net->net_tunables.lct_peer_tx_credits;
+	lp->lpni_rtrcredits    =
+	lp->lpni_minrtrcredits = lnet_peer_buffer_credits(lp->lpni_net);
 
-	list_add_tail(&lp->lp_hashlist,
+	list_add_tail(&lp->lpni_hashlist,
 		      &ptable->pt_hash[lnet_nid2peerhash(nid)]);
 	ptable->pt_version++;
 	*lpp = lp;
@@ -343,7 +343,7 @@ lnet_nid2peer_locked(lnet_peer_t **lpp, lnet_nid_t nid, int cpt)
 	return 0;
 out:
 	if (lp != NULL)
-		list_add(&lp->lp_hashlist, &ptable->pt_deathrow);
+		list_add(&lp->lpni_hashlist, &ptable->pt_deathrow);
 	ptable->pt_number--;
 	return rc;
 }
@@ -367,13 +367,13 @@ lnet_debug_peer(lnet_nid_t nid)
 	}
 
 	if (lnet_isrouter(lp) || lnet_peer_aliveness_enabled(lp))
-		aliveness = lp->lp_alive ? "up" : "down";
+		aliveness = lp->lpni_alive ? "up" : "down";
 
 	CDEBUG(D_WARNING, "%-24s %4d %5s %5d %5d %5d %5d %5d %ld\n",
-	       libcfs_nid2str(lp->lp_nid), lp->lp_refcount,
-	       aliveness, lp->lp_net->net_tunables.lct_peer_tx_credits,
-	       lp->lp_rtrcredits, lp->lp_minrtrcredits,
-	       lp->lp_txcredits, lp->lp_mintxcredits, lp->lp_txqnob);
+	       libcfs_nid2str(lp->lpni_nid), lp->lpni_refcount,
+	       aliveness, lp->lpni_net->net_tunables.lct_peer_tx_credits,
+	       lp->lpni_rtrcredits, lp->lpni_minrtrcredits,
+	       lp->lpni_txcredits, lp->lpni_mintxcredits, lp->lpni_txqnob);
 
 	lnet_peer_decref_locked(lp);
 
@@ -413,7 +413,7 @@ int lnet_get_peer_info(__u32 peer_index, __u64 *nid,
 	for (j = 0; j < LNET_PEER_HASH_SIZE && !found; j++) {
 		struct list_head *peers = &peer_table->pt_hash[j];
 
-		list_for_each_entry(lp, peers, lp_hashlist) {
+		list_for_each_entry(lp, peers, lpni_hashlist) {
 			if (peer_index-- > 0)
 				continue;
 
@@ -421,16 +421,16 @@ int lnet_get_peer_info(__u32 peer_index, __u64 *nid,
 			if (lnet_isrouter(lp) ||
 				lnet_peer_aliveness_enabled(lp))
 				snprintf(aliveness, LNET_MAX_STR_LEN,
-					 lp->lp_alive ? "up" : "down");
+					 lp->lpni_alive ? "up" : "down");
 
-			*nid = lp->lp_nid;
-			*refcount = lp->lp_refcount;
+			*nid = lp->lpni_nid;
+			*refcount = lp->lpni_refcount;
 			*ni_peer_tx_credits =
-				lp->lp_net->net_tunables.lct_peer_tx_credits;
-			*peer_tx_credits = lp->lp_txcredits;
-			*peer_rtr_credits = lp->lp_rtrcredits;
-			*peer_min_rtr_credits = lp->lp_mintxcredits;
-			*peer_tx_qnob = lp->lp_txqnob;
+				lp->lpni_net->net_tunables.lct_peer_tx_credits;
+			*peer_tx_credits = lp->lpni_txcredits;
+			*peer_rtr_credits = lp->lpni_rtrcredits;
+			*peer_min_rtr_credits = lp->lpni_mintxcredits;
+			*peer_tx_qnob = lp->lpni_txqnob;
 
 			found = true;
 		}

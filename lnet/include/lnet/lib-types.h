@@ -420,56 +420,56 @@ typedef struct {
 
 typedef struct lnet_peer {
 	/* chain on peer hash */
-	struct list_head	lp_hashlist;
+	struct list_head	lpni_hashlist;
 	/* messages blocking for tx credits */
-	struct list_head	lp_txq;
+	struct list_head	lpni_txq;
 	/* messages blocking for router credits */
-	struct list_head	lp_rtrq;
+	struct list_head	lpni_rtrq;
 	/* chain on router list */
-	struct list_head	lp_rtr_list;
+	struct list_head	lpni_rtr_list;
 	/* # tx credits available */
-	int			lp_txcredits;
+	int			lpni_txcredits;
 	/* low water mark */
-	int			lp_mintxcredits;
+	int			lpni_mintxcredits;
 	/* # router credits */
-	int			lp_rtrcredits;
+	int			lpni_rtrcredits;
 	/* low water mark */
-	int			lp_minrtrcredits;
+	int			lpni_minrtrcredits;
 	/* alive/dead? */
-	unsigned int		lp_alive:1;
+	unsigned int		lpni_alive:1;
 	/* notification outstanding? */
-	unsigned int		lp_notify:1;
+	unsigned int		lpni_notify:1;
 	/* outstanding notification for LND? */
-	unsigned int		lp_notifylnd:1;
+	unsigned int		lpni_notifylnd:1;
 	/* some thread is handling notification */
-	unsigned int		lp_notifying:1;
+	unsigned int		lpni_notifying:1;
 	/* SEND event outstanding from ping */
-	unsigned int		lp_ping_notsent;
+	unsigned int		lpni_ping_notsent;
 	/* # times router went dead<->alive */
-	int			lp_alive_count;
+	int			lpni_alive_count;
 	/* bytes queued for sending */
-	long			lp_txqnob;
+	long			lpni_txqnob;
 	/* time of last aliveness news */
-	cfs_time_t		lp_timestamp;
+	cfs_time_t		lpni_timestamp;
 	/* time of last ping attempt */
-	cfs_time_t		lp_ping_timestamp;
+	cfs_time_t		lpni_ping_timestamp;
 	/* != 0 if ping reply expected */
-	cfs_time_t		lp_ping_deadline;
+	cfs_time_t		lpni_ping_deadline;
 	/* when I was last alive */
-	cfs_time_t		lp_last_alive;
-	/* when lp_ni was queried last time */
-	cfs_time_t		lp_last_query;
+	cfs_time_t		lpni_last_alive;
+	/* when lpni_ni was queried last time */
+	cfs_time_t		lpni_last_query;
 	/* network peer is on */
-	struct lnet_net		*lp_net;
-	lnet_nid_t		lp_nid;		/* peer's NID */
-	int			lp_refcount;	/* # refs */
-	int			lp_cpt;		/* CPT this peer attached on */
+	struct lnet_net		*lpni_net;
+	lnet_nid_t		lpni_nid;		/* peer's NID */
+	int			lpni_refcount;	/* # refs */
+	int			lpni_cpt;		/* CPT this peer attached on */
 	/* # refs from lnet_route_t::lr_gateway */
-	int			lp_rtr_refcount;
+	int			lpni_rtr_refcount;
 	/* returned RC ping features */
-	unsigned int		lp_ping_feats;
-	struct list_head	lp_routes;	/* routers on this peer */
-	lnet_rc_data_t		*lp_rcd;	/* router checker state */
+	unsigned int		lpni_ping_feats;
+	struct list_head	lpni_routes;	/* routers on this peer */
+	lnet_rc_data_t		*lpni_rcd;	/* router checker state */
 } lnet_peer_t;
 
 /* peer hash size */
@@ -489,7 +489,7 @@ struct lnet_peer_table {
 /* peer aliveness is enabled only on routers for peers in a network where the
  * lnet_ni_t::ni_peertimeout has been set to a positive value */
 #define lnet_peer_aliveness_enabled(lp) (the_lnet.ln_routing != 0 && \
-					 (lp)->lp_net->net_tunables.lct_peer_timeout > 0)
+					 (lp)->lpni_net->net_tunables.lct_peer_timeout > 0)
 
 typedef struct {
 	struct list_head	lr_list;	/* chain on net */
