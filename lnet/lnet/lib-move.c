@@ -901,16 +901,16 @@ lnet_post_routed_recv_locked (lnet_msg_t *msg, int do_recv)
 	 * sets do_recv FALSE and I don't do the unlock/send/lock bit.
 	 * I return LNET_CREDIT_WAIT if msg blocked and LNET_CREDIT_OK if
 	 * received or OK to receive */
-	struct lnet_peer_ni	    *lp = msg->msg_rxpeer;
+	struct lnet_peer_ni *lp = msg->msg_rxpeer;
 	lnet_rtrbufpool_t   *rbp;
-	lnet_rtrbuf_t	    *rb;
+	lnet_rtrbuf_t       *rb;
 
-	LASSERT(msg->msg_iov == NULL);
-	LASSERT(msg->msg_kiov == NULL);
-	LASSERT(msg->msg_niov == 0);
-	LASSERT(msg->msg_routing);
-	LASSERT(msg->msg_receiving);
-	LASSERT(!msg->msg_sending);
+	LASSERT (msg->msg_iov == NULL);
+	LASSERT (msg->msg_kiov == NULL);
+	LASSERT (msg->msg_niov == 0);
+	LASSERT (msg->msg_routing);
+	LASSERT (msg->msg_receiving);
+	LASSERT (!msg->msg_sending);
 
 	/* non-lnet_parse callers only receive delayed messages */
 	LASSERT(!do_recv || msg->msg_rx_delayed);
@@ -972,8 +972,8 @@ void
 lnet_return_tx_credits_locked(lnet_msg_t *msg)
 {
 	struct lnet_peer_ni	*txpeer = msg->msg_txpeer;
-	lnet_msg_t	*msg2;
-	struct lnet_ni	*txni = msg->msg_txni;
+	struct lnet_ni		*txni = msg->msg_txni;
+	lnet_msg_t		*msg2;
 
 	if (msg->msg_txcredit) {
 		struct lnet_ni	     *ni = msg->msg_txni;
@@ -1006,12 +1006,12 @@ lnet_return_tx_credits_locked(lnet_msg_t *msg)
 			!list_empty(&txpeer->lpni_txq));
 
 		txpeer->lpni_txqnob -= msg->msg_len + sizeof(lnet_hdr_t);
-		LASSERT(txpeer->lpni_txqnob >= 0);
+		LASSERT (txpeer->lpni_txqnob >= 0);
 
 		txpeer->lpni_txcredits++;
 		if (txpeer->lpni_txcredits <= 0) {
 			msg2 = list_entry(txpeer->lpni_txq.next,
-					      lnet_msg_t, msg_list);
+                                              lnet_msg_t, msg_list);
 			list_del(&msg2->msg_list);
 
 			LASSERT(msg2->msg_txpeer == txpeer);
@@ -1073,8 +1073,8 @@ void
 lnet_return_rx_credits_locked(lnet_msg_t *msg)
 {
 	struct lnet_peer_ni	*rxpeer = msg->msg_rxpeer;
-	struct lnet_ni	*rxni = msg->msg_rxni;
-	lnet_msg_t	*msg2;
+	struct lnet_ni		*rxni = msg->msg_rxni;
+	lnet_msg_t		*msg2;
 
 	if (msg->msg_rtrcredit) {
 		/* give back global router credits */

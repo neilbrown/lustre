@@ -100,8 +100,8 @@ typedef struct lnet_msg {
 	unsigned int          msg_onactivelist:1; /* on the activelist */
 	unsigned int	      msg_rdma_get:1;
 
-	struct lnet_peer_ni     *msg_txpeer;         /* peer I'm sending to */
-	struct lnet_peer_ni     *msg_rxpeer;         /* peer I received from */
+	struct lnet_peer_ni  *msg_txpeer;         /* peer I'm sending to */
+	struct lnet_peer_ni  *msg_rxpeer;         /* peer I received from */
 
 	void                 *msg_private;
 	struct lnet_libmd    *msg_md;
@@ -461,9 +461,12 @@ struct lnet_peer_ni {
 	cfs_time_t		lpni_last_query;
 	/* network peer is on */
 	struct lnet_net		*lpni_net;
-	lnet_nid_t		lpni_nid;		/* peer's NID */
-	atomic_t		lpni_refcount;	/* # refs */
-	int			lpni_cpt;		/* CPT this peer attached on */
+	/* peer's NID */
+	lnet_nid_t		lpni_nid;
+	/* # refs */
+	atomic_t		lpni_refcount;
+	/* CPT this peer attached on */
+	int			lpni_cpt;
 	/* # refs from lnet_route_t::lr_gateway */
 	int			lpni_rtr_refcount;
 	/* returned RC ping features */
@@ -494,7 +497,7 @@ struct lnet_peer_table {
 typedef struct {
 	struct list_head	lr_list;	/* chain on net */
 	struct list_head	lr_gwlist;	/* chain on gateway */
-	struct lnet_peer_ni		*lr_gateway;	/* router node */
+	struct lnet_peer_ni	*lr_gateway;	/* router node */
 	__u32			lr_net;		/* remote network number */
 	int			lr_seq;		/* sequence for round-robin */
 	unsigned int		lr_downis;	/* number of down NIs */

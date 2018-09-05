@@ -225,7 +225,7 @@ proc_lnet_routes(struct ctl_table *table, int write, void __user *buffer,
 			__u32 hops		= route->lr_hops;
 			unsigned int priority	= route->lr_priority;
 			lnet_nid_t   nid	= route->lr_gateway->lpni_nid;
-			int	     alive	= lnet_is_route_alive(route);
+			int          alive	= lnet_is_route_alive(route);
 
 			s += snprintf(s, tmpstr + tmpsiz - s,
 				      "%-8s %4u %8u %7s %s\n",
@@ -315,8 +315,9 @@ proc_lnet_routers(struct ctl_table *table, int write, void __user *buffer,
 		r = the_lnet.ln_routers.next;
 
 		while (r != &the_lnet.ln_routers) {
-			struct lnet_peer_ni *lp = list_entry(r, struct lnet_peer_ni,
-						     lpni_rtr_list);
+			struct lnet_peer_ni *lp =
+			  list_entry(r, struct lnet_peer_ni,
+				     lpni_rtr_list);
 
 			if (skip == 0) {
 				peer = lp;
@@ -461,8 +462,9 @@ proc_lnet_peers(struct ctl_table *table, int write, void __user *buffer,
 				p = ptable->pt_hash[hash].next;
 
 			while (p != &ptable->pt_hash[hash]) {
-				struct lnet_peer_ni *lp = list_entry(p, struct lnet_peer_ni,
-							     lpni_hashlist);
+				struct lnet_peer_ni *lp =
+				  list_entry(p, struct lnet_peer_ni,
+					     lpni_hashlist);
 				if (skip == 0) {
 					peer = lp;
 
@@ -493,8 +495,8 @@ proc_lnet_peers(struct ctl_table *table, int write, void __user *buffer,
                 }
 
 		if (peer != NULL) {
-			lnet_nid_t nid       = peer->lpni_nid;
-			int nrefs     = atomic_read(&peer->lpni_refcount);
+			lnet_nid_t nid = peer->lpni_nid;
+			int nrefs = atomic_read(&peer->lpni_refcount);
 			int lastalive = -1;
 			char *aliveness = "NA";
 			int maxcr = peer->lpni_net->net_tunables.lct_peer_tx_credits;

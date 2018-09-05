@@ -381,7 +381,7 @@ lnet_handle2me(lnet_handle_me_t *handle)
 static inline void
 lnet_peer_addref_locked(struct lnet_peer_ni *lp)
 {
-	LASSERT(atomic_read(&lp->lpni_refcount) > 0);
+	LASSERT (atomic_read(&lp->lpni_refcount) > 0);
 	atomic_inc(&lp->lpni_refcount);
 }
 
@@ -390,7 +390,7 @@ extern void lnet_destroy_peer_locked(struct lnet_peer_ni *lp);
 static inline void
 lnet_peer_decref_locked(struct lnet_peer_ni *lp)
 {
-	LASSERT(atomic_read(&lp->lpni_refcount) > 0);
+	LASSERT (atomic_read(&lp->lpni_refcount) > 0);
 	atomic_dec(&lp->lpni_refcount);
 	if (atomic_read(&lp->lpni_refcount) == 0)
 		lnet_destroy_peer_locked(lp);
@@ -502,7 +502,8 @@ void lnet_lib_exit(void);
 extern int portal_rotor;
 
 int lnet_notify(lnet_ni_t *ni, lnet_nid_t peer, int alive, cfs_time_t when);
-void lnet_notify_locked(struct lnet_peer_ni *lp, int notifylnd, int alive, cfs_time_t when);
+void lnet_notify_locked(struct lnet_peer_ni *lp, int notifylnd, int alive,
+			cfs_time_t when);
 int lnet_add_route(__u32 net, __u32 hops, lnet_nid_t gateway_nid,
 		   unsigned int priority);
 int lnet_check_routes(void);

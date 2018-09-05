@@ -98,18 +98,19 @@ lnet_peers_start_down(void)
 }
 
 void
-lnet_notify_locked(struct lnet_peer_ni *lp, int notifylnd, int alive, cfs_time_t when)
+lnet_notify_locked(struct lnet_peer_ni *lp, int notifylnd, int alive,
+		   cfs_time_t when)
 {
 	if (cfs_time_before(when, lp->lpni_timestamp)) { /* out of date information */
 		CDEBUG(D_NET, "Out of date\n");
 		return;
 	}
 
-	lp->lpni_timestamp = when;		/* update timestamp */
-	lp->lpni_ping_deadline = 0;		/* disable ping timeout */
+	lp->lpni_timestamp = when;                /* update timestamp */
+	lp->lpni_ping_deadline = 0;               /* disable ping timeout */
 
-	if (lp->lpni_alive_count != 0 &&		/* got old news */
-	    (!lp->lpni_alive) == (!alive)) {	/* new date for old news */
+	if (lp->lpni_alive_count != 0 &&          /* got old news */
+	    (!lp->lpni_alive) == (!alive)) {      /* new date for old news */
 		CDEBUG(D_NET, "Old news\n");
 		return;
 	}
@@ -117,7 +118,7 @@ lnet_notify_locked(struct lnet_peer_ni *lp, int notifylnd, int alive, cfs_time_t
 	/* Flag that notification is outstanding */
 
 	lp->lpni_alive_count++;
-	lp->lpni_alive = !(!alive);		/* 1 bit! */
+	lp->lpni_alive = !(!alive);               /* 1 bit! */
 	lp->lpni_notify = 1;
 	lp->lpni_notifylnd |= notifylnd;
 	if (lp->lpni_alive)
@@ -129,8 +130,8 @@ lnet_notify_locked(struct lnet_peer_ni *lp, int notifylnd, int alive, cfs_time_t
 static void
 lnet_ni_notify_locked(lnet_ni_t *ni, struct lnet_peer_ni *lp)
 {
-	int	   alive;
-	int	   notifylnd;
+	int        alive;
+	int        notifylnd;
 
 	/* Notify only in 1 thread at any time to ensure ordered notification.
 	 * NB individual events can be missed; the only guarantee is that you
@@ -142,11 +143,11 @@ lnet_ni_notify_locked(lnet_ni_t *ni, struct lnet_peer_ni *lp)
 	lp->lpni_notifying = 1;
 
 	while (lp->lpni_notify) {
-		alive	  = lp->lpni_alive;
+		alive     = lp->lpni_alive;
 		notifylnd = lp->lpni_notifylnd;
 
 		lp->lpni_notifylnd = 0;
-		lp->lpni_notify	 = 0;
+		lp->lpni_notify    = 0;
 
 		if (notifylnd && ni->ni_net->net_lnd->lnd_notify != NULL) {
 			lnet_net_unlock(lp->lpni_cpt);
@@ -178,8 +179,9 @@ lnet_rtr_addref_locked(struct lnet_peer_ni *lp)
 
 		/* a simple insertion sort */
 		list_for_each_prev(pos, &the_lnet.ln_routers) {
-			struct lnet_peer_ni *rtr = list_entry(pos, struct lnet_peer_ni,
-						      lpni_rtr_list);
+			struct lnet_peer_ni *rtr =
+			  list_entry(pos, struct lnet_peer_ni,
+				     lpni_rtr_list);
 
 			if (rtr->lpni_nid < lp->lpni_nid)
 				break;
@@ -785,9 +787,9 @@ lnet_router_checker_event(lnet_event_t *event)
 static void
 lnet_wait_known_routerstate(void)
 {
-	struct lnet_peer_ni	 *rtr;
+	struct lnet_peer_ni *rtr;
 	struct list_head *entry;
-	int		  all_known;
+	int all_known;
 
 	LASSERT(the_lnet.ln_rc_state == LNET_RC_STATE_RUNNING);
 
@@ -796,7 +798,8 @@ lnet_wait_known_routerstate(void)
 
 		all_known = 1;
 		list_for_each(entry, &the_lnet.ln_routers) {
-			rtr = list_entry(entry, struct lnet_peer_ni, lpni_rtr_list);
+			rtr = list_entry(entry, struct lnet_peer_ni,
+					 lpni_rtr_list);
 
 			if (rtr->lpni_alive_count == 0) {
 				all_known = 0;
@@ -946,7 +949,7 @@ lnet_create_rc_data_locked(struct lnet_peer_ni *gateway)
 
 	return rcd;
 
- out:
+out:
 	if (rcd != NULL) {
 		if (!LNetHandleIsInvalid(rcd->rcd_mdh)) {
 			rc = LNetMDUnlink(rcd->rcd_mdh);
@@ -1015,7 +1018,7 @@ lnet_ping_router_locked (struct lnet_peer_ni *rtr)
 	if (secs != 0 && !rtr->lpni_ping_notsent &&
 	    cfs_time_after(now, cfs_time_add(rtr->lpni_ping_timestamp,
 					     cfs_time_seconds(secs)))) {
-		int		  rc;
+		int               rc;
 		lnet_process_id_t id;
 		lnet_handle_md_t  mdh;
 
@@ -1122,7 +1125,7 @@ lnet_prune_rc_data(int wait_unlink)
 {
 	lnet_rc_data_t		*rcd;
 	lnet_rc_data_t		*tmp;
-	struct lnet_peer_ni		*lp;
+	struct lnet_peer_ni	*lp;
 	struct list_head	 head;
 	int			 i = 2;
 
@@ -1226,8 +1229,8 @@ lnet_router_checker_active(void)
 static int
 lnet_router_checker(void *arg)
 {
-	struct lnet_peer_ni	  *rtr;
-	struct list_head  *entry;
+	struct lnet_peer_ni *rtr;
+	struct list_head *entry;
 
 	cfs_block_allsigs();
 
@@ -1241,7 +1244,8 @@ rescan:
 		version = the_lnet.ln_routers_version;
 
 		list_for_each(entry, &the_lnet.ln_routers) {
-			rtr = list_entry(entry, struct lnet_peer_ni, lpni_rtr_list);
+			rtr = list_entry(entry, struct lnet_peer_ni,
+					 lpni_rtr_list);
 
 			cpt2 = rtr->lpni_cpt;
 			if (cpt != cpt2) {
