@@ -718,7 +718,7 @@ lnet_peer_is_alive (lnet_peer_t *lp, cfs_time_t now)
 	alive = cfs_time_after(deadline, now);
 
 	/*
-	 * Update obsolete lpni_alive except for routers assumed to be dead
+	 * Update obsolete lp_alive except for routers assumed to be dead
 	 * initially, because router checker would update aliveness in this
 	 * case, and moreover lpni_last_alive at peer creation is assumed.
 	 */
