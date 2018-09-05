@@ -100,8 +100,8 @@ typedef struct lnet_msg {
 	unsigned int          msg_onactivelist:1; /* on the activelist */
 	unsigned int	      msg_rdma_get:1;
 
-	struct lnet_peer     *msg_txpeer;         /* peer I'm sending to */
-	struct lnet_peer     *msg_rxpeer;         /* peer I received from */
+	struct lnet_peer_ni     *msg_txpeer;         /* peer I'm sending to */
+	struct lnet_peer_ni     *msg_rxpeer;         /* peer I received from */
 
 	void                 *msg_private;
 	struct lnet_libmd    *msg_md;
@@ -414,11 +414,11 @@ typedef struct {
 	/* chain on the_lnet.ln_zombie_rcd or ln_deathrow_rcd */
 	struct list_head	rcd_list;
 	lnet_handle_md_t	rcd_mdh;	/* ping buffer MD */
-	struct lnet_peer	*rcd_gateway;	/* reference to gateway */
+	struct lnet_peer_ni	*rcd_gateway;	/* reference to gateway */
 	struct lnet_ping_info	*rcd_pinginfo;	/* ping buffer */
 } lnet_rc_data_t;
 
-typedef struct lnet_peer {
+struct lnet_peer_ni {
 	/* chain on peer hash */
 	struct list_head	lpni_hashlist;
 	/* messages blocking for tx credits */
@@ -470,7 +470,7 @@ typedef struct lnet_peer {
 	unsigned int		lpni_ping_feats;
 	struct list_head	lpni_routes;	/* routers on this peer */
 	lnet_rc_data_t		*lpni_rcd;	/* router checker state */
-} lnet_peer_t;
+};
 
 /* peer hash size */
 #define LNET_PEER_HASH_BITS	9
@@ -494,7 +494,7 @@ struct lnet_peer_table {
 typedef struct {
 	struct list_head	lr_list;	/* chain on net */
 	struct list_head	lr_gwlist;	/* chain on gateway */
-	lnet_peer_t		*lr_gateway;	/* router node */
+	struct lnet_peer_ni		*lr_gateway;	/* router node */
 	__u32			lr_net;		/* remote network number */
 	int			lr_seq;		/* sequence for round-robin */
 	unsigned int		lr_downis;	/* number of down NIs */

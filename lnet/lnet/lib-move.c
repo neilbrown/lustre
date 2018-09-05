@@ -677,7 +677,7 @@ lnet_ni_eager_recv(lnet_ni_t *ni, lnet_msg_t *msg)
 
 /* NB: caller shall hold a ref on 'lp' as I'd drop lnet_net_lock */
 static void
-lnet_ni_query_locked(lnet_ni_t *ni, lnet_peer_t *lp)
+lnet_ni_query_locked(lnet_ni_t *ni, struct lnet_peer_ni *lp)
 {
 	cfs_time_t last_alive = 0;
 
@@ -696,7 +696,7 @@ lnet_ni_query_locked(lnet_ni_t *ni, lnet_peer_t *lp)
 
 /* NB: always called with lnet_net_lock held */
 static inline int
-lnet_peer_is_alive (lnet_peer_t *lp, cfs_time_t now)
+lnet_peer_is_alive (struct lnet_peer_ni *lp, cfs_time_t now)
 {
 	int        alive;
 	cfs_time_t deadline;
@@ -733,7 +733,7 @@ lnet_peer_is_alive (lnet_peer_t *lp, cfs_time_t now)
 /* NB: returns 1 when alive, 0 when dead, negative when error;
  *     may drop the lnet_net_lock */
 static int
-lnet_peer_alive_locked (struct lnet_ni *ni, lnet_peer_t *lp)
+lnet_peer_alive_locked (struct lnet_ni *ni, struct lnet_peer_ni *lp)
 {
 	cfs_time_t now = cfs_time_current();
 
@@ -790,7 +790,7 @@ lnet_peer_alive_locked (struct lnet_ni *ni, lnet_peer_t *lp)
 static int
 lnet_post_send_locked(lnet_msg_t *msg, int do_send)
 {
-	lnet_peer_t		*lp = msg->msg_txpeer;
+	struct lnet_peer_ni		*lp = msg->msg_txpeer;
 	lnet_ni_t		*ni = msg->msg_txni;
 	int			cpt = msg->msg_tx_cpt;
 	struct lnet_tx_queue	*tq = ni->ni_tx_queues[cpt];
@@ -901,7 +901,7 @@ lnet_post_routed_recv_locked (lnet_msg_t *msg, int do_recv)
 	 * sets do_recv FALSE and I don't do the unlock/send/lock bit.
 	 * I return LNET_CREDIT_WAIT if msg blocked and LNET_CREDIT_OK if
 	 * received or OK to receive */
-	lnet_peer_t	    *lp = msg->msg_rxpeer;
+	struct lnet_peer_ni	    *lp = msg->msg_rxpeer;
 	lnet_rtrbufpool_t   *rbp;
 	lnet_rtrbuf_t	    *rb;
 
@@ -971,7 +971,7 @@ lnet_post_routed_recv_locked (lnet_msg_t *msg, int do_recv)
 void
 lnet_return_tx_credits_locked(lnet_msg_t *msg)
 {
-	lnet_peer_t	*txpeer = msg->msg_txpeer;
+	struct lnet_peer_ni	*txpeer = msg->msg_txpeer;
 	lnet_msg_t	*msg2;
 	struct lnet_ni	*txni = msg->msg_txni;
 
@@ -1072,7 +1072,7 @@ lnet_drop_routed_msgs_locked(struct list_head *list, int cpt)
 void
 lnet_return_rx_credits_locked(lnet_msg_t *msg)
 {
-	lnet_peer_t	*rxpeer = msg->msg_rxpeer;
+	struct lnet_peer_ni	*rxpeer = msg->msg_rxpeer;
 	struct lnet_ni	*rxni = msg->msg_rxni;
 	lnet_msg_t	*msg2;
 
@@ -1156,8 +1156,8 @@ routing_off:
 static int
 lnet_compare_routes(lnet_route_t *r1, lnet_route_t *r2)
 {
-	lnet_peer_t *p1 = r1->lr_gateway;
-	lnet_peer_t *p2 = r2->lr_gateway;
+	struct lnet_peer_ni *p1 = r1->lr_gateway;
+	struct lnet_peer_ni *p2 = r2->lr_gateway;
 	int r1_hops = (r1->lr_hops == LNET_UNDEFINED_HOPS) ? 1 : r1->lr_hops;
 	int r2_hops = (r2->lr_hops == LNET_UNDEFINED_HOPS) ? 1 : r2->lr_hops;
 
@@ -1191,7 +1191,7 @@ lnet_compare_routes(lnet_route_t *r1, lnet_route_t *r2)
 	return -ERANGE;
 }
 
-static lnet_peer_t *
+static struct lnet_peer_ni *
 lnet_find_route_locked(struct lnet_net *net, lnet_nid_t target,
 		       lnet_nid_t rtr_nid)
 {
@@ -1199,8 +1199,8 @@ lnet_find_route_locked(struct lnet_net *net, lnet_nid_t target,
 	lnet_route_t		*route;
 	lnet_route_t		*best_route;
 	lnet_route_t		*last_route;
-	struct lnet_peer	*lpni_best;
-	struct lnet_peer	*lp;
+	struct lnet_peer_ni	*lpni_best;
+	struct lnet_peer_ni	*lp;
 	int			rc;
 
 	/* If @rtr_nid is not LNET_NID_ANY, return the gateway with
@@ -1256,7 +1256,7 @@ lnet_send(lnet_nid_t src_nid, lnet_msg_t *msg, lnet_nid_t rtr_nid)
 	lnet_nid_t		dst_nid = msg->msg_target.nid;
 	struct lnet_ni		*src_ni;
 	struct lnet_ni		*local_ni;
-	struct lnet_peer	*lp;
+	struct lnet_peer_ni	*lp;
 	int			cpt;
 	int			cpt2;
 	int			rc;
