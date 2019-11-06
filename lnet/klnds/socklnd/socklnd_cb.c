@@ -423,7 +423,7 @@ ksocknal_txlist_done(struct lnet_ni *ni, struct list_head *txlist, int error)
 	struct ksock_tx *tx;
 
 	while (!list_empty(txlist)) {
-		tx = list_entry(txlist->next, struct ksock_tx, tx_list);
+		tx = list_first_entry(txlist, struct ksock_tx, tx_list);
 
 		if (error && tx->tx_lnetmsg != NULL) {
 			CNETERR("Deleting packet type %d len %d %s->%s\n",

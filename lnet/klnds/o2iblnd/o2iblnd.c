@@ -2020,7 +2020,7 @@ kiblnd_destroy_pool_list(struct list_head *head)
 	struct kib_pool *pool;
 
 	while (!list_empty(head)) {
-		pool = list_entry(head->next, struct kib_pool, po_list);
+		pool = list_first_entry(head, struct kib_pool, po_list);
 		list_del(&pool->po_list);
 
 		LASSERT(pool->po_owner != NULL);

@@ -2002,8 +2002,8 @@ lnet_clear_zombies_nis_locked(struct lnet_net *net)
 		int	*ref;
 		int	j;
 
-		ni = list_entry(zombie_list->next,
-				struct lnet_ni, ni_netlist);
+		ni = list_first_entry(zombie_list,
+				      struct lnet_ni, ni_netlist);
 		list_del_init(&ni->ni_netlist);
 		/* the ni should be in deleting state. If it's not it's
 		 * a bug */
@@ -2422,7 +2422,7 @@ lnet_startup_lndnets(struct list_head *netlist)
 	lnet_net_unlock(LNET_LOCK_EX);
 
 	while (!list_empty(netlist)) {
-		net = list_entry(netlist->next, struct lnet_net, net_list);
+		net = list_first_entry(netlist, struct lnet_net, net_list);
 		list_del_init(&net->net_list);
 
 		rc = lnet_startup_lndnet(net, NULL);

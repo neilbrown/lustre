@@ -2149,8 +2149,8 @@ int ldlm_cli_cancel_list(struct list_head *cancels, int count,
 	 */
 	while (count > 0) {
 		LASSERT(!list_empty(cancels));
-		lock = list_entry(cancels->next, struct ldlm_lock,
-				  l_bl_ast);
+		lock = list_first_entry(cancels, struct ldlm_lock,
+					l_bl_ast);
 		LASSERT(lock->l_conn_export);
 
 		if (exp_connect_cancelset(lock->l_conn_export)) {

@@ -279,7 +279,7 @@ free_addrranges(struct list_head *list)
 	while (!list_empty(list)) {
 		struct addrrange *ar;
 
-		ar = list_entry(list->next, struct addrrange, ar_link);
+		ar = list_first_entry(list, struct addrrange, ar_link);
 
 		cfs_expr_list_free_list(&ar->ar_numaddr_ranges);
 		list_del(&ar->ar_link);
@@ -645,7 +645,7 @@ libcfs_num_match(__u32 addr, struct list_head *numaddr)
 	struct cfs_expr_list *el;
 
 	LASSERT(!list_empty(numaddr));
-	el = list_entry(numaddr->next, struct cfs_expr_list, el_link);
+	el = list_first_entry(numaddr, struct cfs_expr_list, el_link);
 
 	return cfs_expr_list_match(addr, el);
 }

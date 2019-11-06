@@ -105,8 +105,8 @@ restart:
 		if (hint && !(hint->l_policy_data.l_inodebits.bits & (1 << i)))
 			continue;
 
-		node = list_entry(head->next, struct ldlm_ibits_node,
-				  lin_link[i]);
+		node = list_first_entry(head, struct ldlm_ibits_node,
+					lin_link[i]);
 
 		pending = node->lock;
 		LDLM_DEBUG(pending, "Reprocessing lock from queue %d", i);

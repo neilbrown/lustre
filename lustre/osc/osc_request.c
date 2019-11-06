@@ -2340,8 +2340,8 @@ out:
 		/* this should happen rarely and is pretty bad, it makes the
 		 * pending list not follow the dirty order */
 		while (!list_empty(ext_list)) {
-			ext = list_entry(ext_list->next, struct osc_extent,
-					 oe_link);
+			ext = list_first_entry(ext_list, struct osc_extent,
+					       oe_link);
 			list_del_init(&ext->oe_link);
 			osc_extent_finish(env, ext, 0, rc);
 		}

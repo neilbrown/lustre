@@ -676,7 +676,7 @@ delayed_msg_process(struct list_head *msg_list, bool drop)
 		int		cpt;
 		int		rc;
 
-		msg = list_entry(msg_list->next, struct lnet_msg, msg_list);
+		msg = list_first_entry(msg_list, struct lnet_msg, msg_list);
 		LASSERT(msg->msg_rxpeer != NULL);
 		LASSERT(msg->msg_rxni != NULL);
 

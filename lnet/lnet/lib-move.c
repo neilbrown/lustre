@@ -2938,8 +2938,8 @@ lnet_resend_pending_msgs_locked(struct list_head *resendq, int cpt)
 	while (!list_empty(resendq)) {
 		struct lnet_peer_ni *lpni;
 
-		msg = list_entry(resendq->next, struct lnet_msg,
-				 msg_list);
+		msg = list_first_entry(resendq, struct lnet_msg,
+				       msg_list);
 
 		list_del_init(&msg->msg_list);
 
@@ -4500,7 +4500,7 @@ lnet_drop_delayed_msg_list(struct list_head *head, char *reason)
 		struct lnet_process_id id = {0};
 		struct lnet_msg	*msg;
 
-		msg = list_entry(head->next, struct lnet_msg, msg_list);
+		msg = list_first_entry(head, struct lnet_msg, msg_list);
 		list_del(&msg->msg_list);
 
 		id.nid = msg->msg_hdr.src_nid;
@@ -4544,7 +4544,7 @@ lnet_recv_delayed_msg_list(struct list_head *head)
 		struct lnet_msg	*msg;
 		struct lnet_process_id id;
 
-		msg = list_entry(head->next, struct lnet_msg, msg_list);
+		msg = list_first_entry(head, struct lnet_msg, msg_list);
 		list_del(&msg->msg_list);
 
 		/* md won't disappear under me, since each msg

@@ -101,7 +101,7 @@ kiblnd_txlist_done(struct list_head *txlist, int status,
 	struct kib_tx *tx;
 
 	while (!list_empty(txlist)) {
-		tx = list_entry(txlist->next, struct kib_tx, tx_list);
+		tx = list_first_entry(txlist, struct kib_tx, tx_list);
 
 		list_del(&tx->tx_list);
 		/* complete now */

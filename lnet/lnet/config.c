@@ -834,7 +834,7 @@ lnet_parse_networks(struct list_head *netlist, char *networks,
  failed:
 	/* free the net list and all the nis on each net */
 	while (!list_empty(netlist)) {
-		net = list_entry(netlist->next, struct lnet_net, net_list);
+		net = list_first_entry(netlist, struct lnet_net, net_list);
 
 		list_del_init(&net->net_list);
 		lnet_net_free(net);
@@ -891,7 +891,7 @@ lnet_free_text_bufs(struct list_head *tbs)
 	struct lnet_text_buf  *ltb;
 
 	while (!list_empty(tbs)) {
-		ltb = list_entry(tbs->next, struct lnet_text_buf, ltb_list);
+		ltb = list_first_entry(tbs, struct lnet_text_buf, ltb_list);
 
 		list_del(&ltb->ltb_list);
 		lnet_free_text_buf(ltb);
@@ -1249,7 +1249,7 @@ lnet_parse_route_tbs(struct list_head *tbs, int *im_a_router)
 	struct lnet_text_buf   *ltb;
 
 	while (!list_empty(tbs)) {
-		ltb = list_entry(tbs->next, struct lnet_text_buf, ltb_list);
+		ltb = list_first_entry(tbs, struct lnet_text_buf, ltb_list);
 
 		if (lnet_parse_route(ltb->ltb_text, im_a_router) < 0) {
 			lnet_free_text_bufs(tbs);
@@ -1391,7 +1391,7 @@ lnet_splitnets(char *source, struct list_head *nets)
 	LASSERT(!list_empty(nets));
 	LASSERT(nets->next == nets->prev);	/* single entry */
 
-	tb = list_entry(nets->next, struct lnet_text_buf, ltb_list);
+	tb = list_first_entry(nets, struct lnet_text_buf, ltb_list);
 
 	for (;;) {
 		sep = strchr(tb->ltb_text, ',');
