@@ -2137,7 +2137,7 @@ int llapi_layout_comp_use(struct llapi_layout *layout,
 		return 1;
 	}
 
-	head = list_entry(layout->llot_comp_list.next, typeof(*head), llc_list);
+	head = list_first_entry(&layout->llot_comp_list, typeof(*head), llc_list);
 	tail = list_entry(layout->llot_comp_list.prev, typeof(*tail), llc_list);
 	switch (pos) {
 	case LLAPI_LAYOUT_COMP_USE_FIRST:
@@ -2148,8 +2148,9 @@ int llapi_layout_comp_use(struct llapi_layout *layout,
 			errno = ENOENT;
 			return 1;
 		}
-		layout->llot_cur_comp = list_entry(comp->llc_list.next,
-						   typeof(*comp), llc_list);
+		layout->llot_cur_comp = list_first_entry(&comp->llc_list,
+							 typeof(*comp),
+							 llc_list);
 		break;
 	case LLAPI_LAYOUT_COMP_USE_LAST:
 		layout->llot_cur_comp = tail;

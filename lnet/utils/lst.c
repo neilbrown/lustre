@@ -1793,10 +1793,10 @@ lst_print_stat(char *name, struct list_head *resultp,
                         break;
                 }
 
-		new = list_entry(resultp[idx].next, struct lstcon_rpc_ent,
-                                     rpe_link);
-		old = list_entry(resultp[1 - idx].next, struct lstcon_rpc_ent,
-                                     rpe_link);
+		new = list_first_entry(&resultp[idx], struct lstcon_rpc_ent,
+				       rpe_link);
+		old = list_first_entry(&resultp[1 - idx], struct lstcon_rpc_ent,
+				       rpe_link);
 
                 /* first time get stats result, can't calculate diff */
                 if (new->rpe_peer.nid == LNET_NID_ANY)
@@ -2039,7 +2039,7 @@ jt_lst_stat(int argc, char **argv)
 
 out:
 	while (!list_empty(&head)) {
-		srp = list_entry(head.next, lst_stat_req_param_t, srp_link);
+		srp = list_first_entry(&head, lst_stat_req_param_t, srp_link);
 
 		list_del(&srp->srp_link);
                 lst_stat_req_param_free(srp);
@@ -2162,7 +2162,7 @@ jt_lst_show_error(int argc, char **argv)
         }
 out:
 	while (!list_empty(&head)) {
-		srp = list_entry(head.next, lst_stat_req_param_t, srp_link);
+		srp = list_first_entry(&head, lst_stat_req_param_t, srp_link);
 
 		list_del(&srp->srp_link);
                 lst_stat_req_param_free(srp);

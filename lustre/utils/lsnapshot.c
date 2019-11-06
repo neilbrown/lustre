@@ -617,8 +617,8 @@ static void snapshot_unload_conf(struct snapshot_instance *si)
 	struct snapshot_target *st;
 
 	while (!list_empty(&si->si_mdts_list)) {
-		st = list_entry(si->si_mdts_list.next,
-				struct snapshot_target, st_list);
+		st = list_first_entry(&si->si_mdts_list,
+				      struct snapshot_target, st_list);
 		list_del(&st->st_list);
 		free(st->st_host);
 		free(st->st_dir);
@@ -628,8 +628,8 @@ static void snapshot_unload_conf(struct snapshot_instance *si)
 	}
 
 	while (!list_empty(&si->si_osts_list)) {
-		st = list_entry(si->si_osts_list.next,
-				struct snapshot_target, st_list);
+		st = list_first_entry(&si->si_osts_list,
+				      struct snapshot_target, st_list);
 		list_del(&st->st_list);
 		free(st->st_host);
 		free(st->st_dir);
@@ -1025,8 +1025,8 @@ static int snapshot_get_mgsnode(struct snapshot_instance *si,
 	FILE *fp;
 	int rc = 0;
 
-	st = list_entry(si->si_osts_list.next, struct snapshot_target,
-			st_list);
+	st = list_first_entry(&si->si_osts_list, struct snapshot_target,
+			      st_list);
 	memset(buf, 0, sizeof(buf));
 	snprintf(buf, sizeof(buf) - 1,
 		 DRSH" '"DZFS" get -H -o value lustre:mgsnode "DFSNAME"'",
@@ -2099,8 +2099,8 @@ static int snapshot_list_all(struct snapshot_instance *si)
 
 	pclose(fp);
 	while (!list_empty(&list_sub_items)) {
-		lsi = list_entry(list_sub_items.next,
-				 struct list_sub_item, lsi_list);
+		lsi = list_first_entry(&list_sub_items,
+				       struct list_sub_item, lsi_list);
 		list_del(&lsi->lsi_list);
 		if (!rc) {
 			si->si_ssname = lsi->lsi_ssname;
