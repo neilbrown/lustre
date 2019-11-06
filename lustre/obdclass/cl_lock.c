@@ -87,8 +87,8 @@ void cl_lock_fini(const struct lu_env *env, struct cl_lock *lock)
 	while (!list_empty(&lock->cll_layers)) {
 		struct cl_lock_slice *slice;
 
-		slice = list_entry(lock->cll_layers.next,
-				struct cl_lock_slice, cls_linkage);
+		slice = list_first_entry(&lock->cll_layers,
+					 struct cl_lock_slice, cls_linkage);
 		list_del_init(lock->cll_layers.next);
 		slice->cls_ops->clo_fini(env, slice);
 	}

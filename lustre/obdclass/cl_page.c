@@ -156,8 +156,8 @@ static void cl_page_free(const struct lu_env *env, struct cl_page *page,
 	while (!list_empty(&page->cp_layers)) {
 		struct cl_page_slice *slice;
 
-		slice = list_entry(page->cp_layers.next,
-				   struct cl_page_slice, cpl_linkage);
+		slice = list_first_entry(&page->cp_layers,
+					 struct cl_page_slice, cpl_linkage);
 		list_del_init(page->cp_layers.next);
 		if (unlikely(slice->cpl_ops->cpo_fini != NULL))
 			slice->cpl_ops->cpo_fini(env, slice, pvec);

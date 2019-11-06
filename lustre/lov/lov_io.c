@@ -617,9 +617,9 @@ static void lov_io_fini(const struct lu_env *env, const struct cl_io_slice *ios)
 	LASSERT(list_empty(&lio->lis_active));
 
 	while (!list_empty(&lio->lis_subios)) {
-		struct lov_io_sub *sub = list_entry(lio->lis_subios.next,
-						    struct lov_io_sub,
-						    sub_list);
+		struct lov_io_sub *sub = list_first_entry(&lio->lis_subios,
+							  struct lov_io_sub,
+							  sub_list);
 
 		list_del_init(&sub->sub_list);
 		lio->lis_nr_subios--;

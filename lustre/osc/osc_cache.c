@@ -2005,8 +2005,8 @@ static unsigned int get_write_extents(struct osc_object *obj,
 
 	assert_osc_object_is_locked(obj);
 	while (!list_empty(&obj->oo_hp_exts)) {
-		ext = list_entry(obj->oo_hp_exts.next, struct osc_extent,
-				 oe_link);
+		ext = list_first_entry(&obj->oo_hp_exts, struct osc_extent,
+				       oe_link);
 		LASSERT(ext->oe_state == OES_CACHE);
 		if (!try_to_add_extent_for_io(cli, ext, &data))
 			return data.erd_page_count;
@@ -2016,8 +2016,8 @@ static unsigned int get_write_extents(struct osc_object *obj,
 		return data.erd_page_count;
 
 	while (!list_empty(&obj->oo_urgent_exts)) {
-		ext = list_entry(obj->oo_urgent_exts.next,
-				 struct osc_extent, oe_link);
+		ext = list_first_entry(&obj->oo_urgent_exts,
+				       struct osc_extent, oe_link);
 		if (!try_to_add_extent_for_io(cli, ext, &data))
 			return data.erd_page_count;
 	}
@@ -2030,8 +2030,8 @@ static unsigned int get_write_extents(struct osc_object *obj,
 	 * is so we don't miss adding extra extents to an RPC containing high
 	 * priority or urgent extents. */
 	while (!list_empty(&obj->oo_full_exts)) {
-		ext = list_entry(obj->oo_full_exts.next,
-				 struct osc_extent, oe_link);
+		ext = list_first_entry(&obj->oo_full_exts,
+				       struct osc_extent, oe_link);
 		if (!try_to_add_extent_for_io(cli, ext, &data))
 			break;
 	}
@@ -2767,7 +2767,7 @@ again:
 	while (!list_empty(&list)) {
 		int rc;
 
-		ext = list_entry(list.next, struct osc_extent, oe_link);
+		ext = list_first_entry(&list, struct osc_extent, oe_link);
 		list_del_init(&ext->oe_link);
 
 		/* extent may be in OES_ACTIVE state because inode mutex

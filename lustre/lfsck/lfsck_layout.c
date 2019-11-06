@@ -4543,9 +4543,9 @@ static int lfsck_layout_assistant_handler_p2(const struct lu_env *env,
 
 	spin_lock(&ltds->ltd_lock);
 	while (!list_empty(&lad->lad_ost_phase2_list)) {
-		ltd = list_entry(lad->lad_ost_phase2_list.next,
-				 struct lfsck_tgt_desc,
-				 ltd_layout_phase_list);
+		ltd = list_first_entry(&lad->lad_ost_phase2_list,
+				       struct lfsck_tgt_desc,
+				       ltd_layout_phase_list);
 		list_del_init(&ltd->ltd_layout_phase_list);
 		if (bk->lb_param & LPF_OST_ORPHAN) {
 			spin_unlock(&ltds->ltd_lock);
@@ -4741,9 +4741,9 @@ lfsck_layout_slave_query_master(const struct lu_env *env,
 	llsd->llsd_touch_gen++;
 	spin_lock(&llsd->llsd_lock);
 	while (!list_empty(&llsd->llsd_master_list)) {
-		llst = list_entry(llsd->llsd_master_list.next,
-				  struct lfsck_layout_slave_target,
-				  llst_list);
+		llst = list_first_entry(&llsd->llsd_master_list,
+					struct lfsck_layout_slave_target,
+					llst_list);
 		if (llst->llst_gen == llsd->llsd_touch_gen)
 			break;
 
@@ -4821,9 +4821,9 @@ lfsck_layout_slave_notify_master(const struct lu_env *env,
 	llsd->llsd_touch_gen++;
 	spin_lock(&llsd->llsd_lock);
 	while (!list_empty(&llsd->llsd_master_list)) {
-		llst = list_entry(llsd->llsd_master_list.next,
-				  struct lfsck_layout_slave_target,
-				  llst_list);
+		llst = list_first_entry(&llsd->llsd_master_list,
+					struct lfsck_layout_slave_target,
+					llst_list);
 		if (llst->llst_gen == llsd->llsd_touch_gen)
 			break;
 
@@ -6368,8 +6368,9 @@ static void lfsck_layout_slave_quit(const struct lu_env *env,
 
 	spin_lock(&llsd->llsd_lock);
 	while (!list_empty(&llsd->llsd_master_list)) {
-		llst = list_entry(llsd->llsd_master_list.next,
-				  struct lfsck_layout_slave_target, llst_list);
+		llst = list_first_entry(&llsd->llsd_master_list,
+					struct lfsck_layout_slave_target,
+					llst_list);
 		list_del_init(&llst->llst_list);
 		spin_unlock(&llsd->llsd_lock);
 		lfsck_layout_llst_put(llst);
@@ -6781,9 +6782,9 @@ static void lfsck_layout_assistant_fill_pos(const struct lu_env *env,
 	if (list_empty(&lad->lad_req_list))
 		return;
 
-	llr = list_entry(lad->lad_req_list.next,
-			 struct lfsck_layout_req,
-			 llr_lar.lar_list);
+	llr = list_first_entry(&lad->lad_req_list,
+			       struct lfsck_layout_req,
+			       llr_lar.lar_list);
 	pos->lp_oit_cookie = llr->llr_lar.lar_parent->lso_oit_cookie - 1;
 }
 

@@ -2244,7 +2244,7 @@ int osc_build_rpc(const struct lu_env *env, struct client_obd *cli,
 	}
 
 	/* first page in the list */
-	oap = list_entry(rpc_list.next, typeof(*oap), oap_rpc_item);
+	oap = list_first_entry(&rpc_list, typeof(*oap), oap_rpc_item);
 
 	crattr = &osc_env_info(env)->oti_req_attr;
 	memset(crattr, 0, sizeof(*crattr));

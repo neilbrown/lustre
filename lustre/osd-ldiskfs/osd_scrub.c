@@ -808,8 +808,9 @@ static int osd_scrub_next(struct osd_thread_info *info, struct osd_device *dev,
 		if (likely(!list_empty(&scrub->os_inconsistent_items))) {
 			struct osd_inconsistent_item *oii;
 
-			oii = list_entry(scrub->os_inconsistent_items.next,
-				struct osd_inconsistent_item, oii_list);
+			oii = list_first_entry(&scrub->os_inconsistent_items,
+					       struct osd_inconsistent_item,
+					       oii_list);
 			spin_unlock(&scrub->os_lock);
 
 			*oic = &oii->oii_cache;
@@ -1317,8 +1318,8 @@ out:
 	while (!list_empty(&scrub->os_inconsistent_items)) {
 		struct osd_inconsistent_item *oii;
 
-		oii = list_entry(scrub->os_inconsistent_items.next,
-				 struct osd_inconsistent_item, oii_list);
+		oii = list_first_entry(&scrub->os_inconsistent_items,
+				       struct osd_inconsistent_item, oii_list);
 		list_del_init(&oii->oii_list);
 		OBD_FREE_PTR(oii);
 	}
@@ -2439,8 +2440,8 @@ static void osd_initial_OI_scrub(struct osd_thread_info *info,
 		if (list_empty(&dev->od_ios_list))
 			break;
 
-		item = list_entry(dev->od_ios_list.next,
-				  struct osd_ios_item, oii_list);
+		item = list_first_entry(&dev->od_ios_list,
+					struct osd_ios_item, oii_list);
 		list_del_init(&item->oii_list);
 
 		LASSERT(item->oii_scandir != NULL);
@@ -2484,9 +2485,9 @@ static void osd_initial_OI_scrub(struct osd_thread_info *info,
 		while (!list_empty(&dev->od_index_restore_list)) {
 			struct lustre_index_restore_unit *liru;
 
-			liru = list_entry(dev->od_index_restore_list.next,
-					  struct lustre_index_restore_unit,
-					  liru_link);
+			liru = list_first_entry(&dev->od_index_restore_list,
+						struct lustre_index_restore_unit,
+						liru_link);
 			list_del(&liru->liru_link);
 			if (buf)
 				osd_index_restore(info->oti_env, dev, liru,

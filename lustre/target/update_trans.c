@@ -1338,8 +1338,9 @@ static bool tdtd_ready_for_cancel_log(struct target_distribute_txn_data *tdtd)
 
 	spin_lock(&tdtd->tdtd_batchid_lock);
 	if (!list_empty(&tdtd->tdtd_list)) {
-		tmt = list_entry(tdtd->tdtd_list.next,
-				 struct top_multiple_thandle, tmt_commit_list);
+		tmt = list_first_entry(&tdtd->tdtd_list,
+				       struct top_multiple_thandle,
+				       tmt_commit_list);
 		if (tmt->tmt_committed &&
 		    (!obd->obd_recovering || (obd->obd_recovering &&
 		    tmt->tmt_batchid <= tdtd->tdtd_committed_batchid)))

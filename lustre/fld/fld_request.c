@@ -484,7 +484,7 @@ again:
 		 * the target. Else retreive the next target entry.
 		 */
 		if (target->ft_chain.next == &fld->lcf_targets)
-			target = list_first_entry(target->ft_chain.next,
+			target = list_first_entry(&fld->lcf_targets,
 						  struct lu_fld_target,
 						  ft_chain);
 		else

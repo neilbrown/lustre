@@ -705,9 +705,9 @@ nrs_tbf_jobid_cli_put(struct nrs_tbf_head *head,
 	while (cfs_hash_bd_count_get(&bd) > hw) {
 		if (unlikely(list_empty(&bkt->ntb_lru)))
 			break;
-		cli = list_entry(bkt->ntb_lru.next,
-				     struct nrs_tbf_client,
-				     tc_lru);
+		cli = list_first_entry(&bkt->ntb_lru,
+				       struct nrs_tbf_client,
+				       tc_lru);
 		LASSERT(atomic_read(&cli->tc_ref) == 0);
 		cfs_hash_bd_del_locked(hs, &bd, &cli->tc_hnode);
 		list_move(&cli->tc_lru, &zombies);
@@ -1712,9 +1712,9 @@ nrs_tbf_cli_put(struct nrs_tbf_head *head, struct nrs_tbf_client *cli)
 	while (cfs_hash_bd_count_get(&bd) > hw) {
 		if (unlikely(list_empty(&bkt->ntb_lru)))
 			break;
-		cli = list_entry(bkt->ntb_lru.next,
-				 struct nrs_tbf_client,
-				 tc_lru);
+		cli = list_first_entry(&bkt->ntb_lru,
+				       struct nrs_tbf_client,
+				       tc_lru);
 		LASSERT(atomic_read(&cli->tc_ref) == 0);
 		cfs_hash_bd_del_locked(hs, &bd, &cli->tc_hnode);
 		list_move(&cli->tc_lru, &zombies);
@@ -3064,9 +3064,9 @@ struct ptlrpc_nrs_request *nrs_tbf_req_get(struct ptlrpc_nrs_policy *policy,
 	cli = container_of(node, struct nrs_tbf_client, tc_node);
 	LASSERT(cli->tc_in_heap);
 	if (peek) {
-		nrq = list_entry(cli->tc_list.next,
-				     struct ptlrpc_nrs_request,
-				     nr_u.tbf.tr_list);
+		nrq = list_first_entry(&cli->tc_list,
+				       struct ptlrpc_nrs_request,
+				       nr_u.tbf.tr_list);
 	} else {
 		struct nrs_tbf_rule *rule = cli->tc_rule;
 		__u64 now = ktime_to_ns(ktime_get());
@@ -3096,9 +3096,9 @@ struct ptlrpc_nrs_request *nrs_tbf_req_get(struct ptlrpc_nrs_policy *policy,
 
 		if (ntoken > 0) {
 			struct ptlrpc_request *req;
-			nrq = list_entry(cli->tc_list.next,
-					     struct ptlrpc_nrs_request,
-					     nr_u.tbf.tr_list);
+			nrq = list_first_entry(&cli->tc_list,
+					       struct ptlrpc_nrs_request,
+					       nr_u.tbf.tr_list);
 			req = container_of(nrq,
 					   struct ptlrpc_request,
 					   rq_nrq);

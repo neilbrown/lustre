@@ -189,9 +189,9 @@ static int ofd_inconsistency_verification_main(void *args)
 			break;
 
 		while (!list_empty(&ofd->ofd_inconsistency_list)) {
-			oii = list_entry(ofd->ofd_inconsistency_list.next,
-					 struct ofd_inconsistency_item,
-					 oii_list);
+			oii = list_first_entry(&ofd->ofd_inconsistency_list,
+					       struct ofd_inconsistency_item,
+					       oii_list);
 			list_del_init(&oii->oii_list);
 			spin_unlock(&ofd->ofd_inconsistency_lock);
 			ofd_inconsistency_verify_one(&env, ofd, oii, lrl);
@@ -208,9 +208,9 @@ static int ofd_inconsistency_verification_main(void *args)
 	while (!list_empty(&ofd->ofd_inconsistency_list)) {
 		struct ofd_object *fo;
 
-		oii = list_entry(ofd->ofd_inconsistency_list.next,
-				 struct ofd_inconsistency_item,
-				 oii_list);
+		oii = list_first_entry(&ofd->ofd_inconsistency_list,
+				       struct ofd_inconsistency_item,
+				       oii_list);
 		list_del_init(&oii->oii_list);
 		fo = oii->oii_obj;
 		spin_unlock(&ofd->ofd_inconsistency_lock);

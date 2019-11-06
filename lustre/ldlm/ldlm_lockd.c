@@ -322,8 +322,8 @@ static void waiting_locks_callback(TIMER_DATA_TYPE unused)
 
 	spin_lock_bh(&waiting_locks_spinlock);
 	while (!list_empty(&waiting_locks_list)) {
-		lock = list_entry(waiting_locks_list.next, struct ldlm_lock,
-				  l_pending_chain);
+		lock = list_first_entry(&waiting_locks_list, struct ldlm_lock,
+					l_pending_chain);
 		if (lock->l_callback_timeout > ktime_get_seconds() ||
 		    lock->l_req_mode == LCK_GROUP)
 			break;
@@ -352,8 +352,8 @@ static void waiting_locks_callback(TIMER_DATA_TYPE unused)
 		time64_t now = ktime_get_seconds();
 		time_t delta = 0;
 
-		lock = list_entry(waiting_locks_list.next, struct ldlm_lock,
-				  l_pending_chain);
+		lock = list_first_entry(&waiting_locks_list, struct ldlm_lock,
+					l_pending_chain);
 		if (lock->l_callback_timeout - now > 0)
 			delta = lock->l_callback_timeout - now;
 		mod_timer(&waiting_locks_timer,
@@ -2714,13 +2714,13 @@ static int ldlm_bl_get_work(struct ldlm_bl_pool *blp,
 	/* process a request from the blp_list at least every blp_num_threads */
 	if (!list_empty(&blp->blp_list) &&
 	    (list_empty(&blp->blp_prio_list) || num_bl == 0))
-		blwi = list_entry(blp->blp_list.next,
-				  struct ldlm_bl_work_item, blwi_entry);
+		blwi = list_first_entry(&blp->blp_list,
+					struct ldlm_bl_work_item, blwi_entry);
 	else
 		if (!list_empty(&blp->blp_prio_list))
-			blwi = list_entry(blp->blp_prio_list.next,
-					  struct ldlm_bl_work_item,
-					  blwi_entry);
+			blwi = list_first_entry(&blp->blp_prio_list,
+						struct ldlm_bl_work_item,
+						blwi_entry);
 
 	if (blwi) {
 		if (++num_bl >= num_th)

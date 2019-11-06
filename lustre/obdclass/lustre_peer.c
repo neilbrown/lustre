@@ -154,8 +154,8 @@ int class_del_uuid(const char *uuid)
 	}
 
 	while (!list_empty(&deathrow)) {
-		data = list_entry(deathrow.next, struct uuid_nid_data,
-				  un_list);
+		data = list_first_entry(&deathrow, struct uuid_nid_data,
+					un_list);
 		list_del(&data->un_list);
 
 		CDEBUG(D_INFO, "del uuid %s %s/%d\n",

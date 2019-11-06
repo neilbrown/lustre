@@ -135,8 +135,8 @@ static inline int agl_should_run(struct ll_statahead_info *sai,
 static inline struct ll_inode_info *
 agl_first_entry(struct ll_statahead_info *sai)
 {
-	return list_entry(sai->sai_agls.next, struct ll_inode_info,
-			  lli_agl_list);
+	return list_first_entry(&sai->sai_agls, struct ll_inode_info,
+				lli_agl_list);
 }
 
 /* statahead window is full */
@@ -692,8 +692,8 @@ static void sa_handle_callback(struct ll_statahead_info *sai)
 	while (sa_has_callback(sai)) {
 		struct sa_entry *entry;
 
-		entry = list_entry(sai->sai_interim_entries.next,
-				   struct sa_entry, se_list);
+		entry = list_first_entry(&sai->sai_interim_entries,
+					 struct sa_entry, se_list);
 		list_del_init(&entry->se_list);
 		spin_unlock(&lli->lli_sa_lock);
 

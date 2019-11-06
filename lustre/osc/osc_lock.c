@@ -871,8 +871,8 @@ void osc_lock_wake_waiters(const struct lu_env *env, struct osc_object *osc,
 	while (!list_empty(&oscl->ols_waiting_list)) {
 		struct osc_lock *scan;
 
-		scan = list_entry(oscl->ols_waiting_list.next, struct osc_lock,
-				  ols_wait_entry);
+		scan = list_first_entry(&oscl->ols_waiting_list, struct osc_lock,
+					ols_wait_entry);
 		list_del_init(&scan->ols_wait_entry);
 
 		cl_sync_io_note(env, scan->ols_owner, 0);

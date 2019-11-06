@@ -1000,8 +1000,8 @@ void gss_pipe_release(struct inode *inode)
 		struct gss_upcall_msg	   *gmsg;
 		struct gss_upcall_msg_data *gumd;
 
-		gmsg = list_entry(upcall_lists[idx].next,
-				  struct gss_upcall_msg, gum_list);
+		gmsg = list_first_entry(&upcall_lists[idx],
+					struct gss_upcall_msg, gum_list);
 		gumd = &gmsg->gum_data;
 		LASSERT(list_empty(&gmsg->gum_base.list));
 

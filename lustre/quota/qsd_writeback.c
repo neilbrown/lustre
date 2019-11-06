@@ -394,8 +394,8 @@ static bool qsd_job_pending(struct qsd_instance *qsd, struct list_head *upd,
 	spin_lock(&qsd->qsd_adjust_lock);
 	if (!list_empty(&qsd->qsd_adjust_list)) {
 		struct lquota_entry *lqe;
-		lqe = list_entry(qsd->qsd_adjust_list.next,
-				     struct lquota_entry, lqe_link);
+		lqe = list_first_entry(&qsd->qsd_adjust_list,
+				       struct lquota_entry, lqe_link);
 		if (ktime_get_seconds() >= lqe->lqe_adjust_time)
 			job_pending = true;
 	}
@@ -472,8 +472,8 @@ static int qsd_upd_thread(void *arg)
 		spin_lock(&qsd->qsd_adjust_lock);
 		cur_time = ktime_get_seconds();
 		while (!list_empty(&qsd->qsd_adjust_list)) {
-			lqe = list_entry(qsd->qsd_adjust_list.next,
-					 struct lquota_entry, lqe_link);
+			lqe = list_first_entry(&qsd->qsd_adjust_list,
+					       struct lquota_entry, lqe_link);
 			/* deferred items are sorted by time */
 			if (lqe->lqe_adjust_time > cur_time)
 				break;
@@ -570,8 +570,8 @@ static void qsd_cleanup_adjust(struct qsd_instance *qsd)
 
 	spin_lock(&qsd->qsd_adjust_lock);
 	while (!list_empty(&qsd->qsd_adjust_list)) {
-		lqe = list_entry(qsd->qsd_adjust_list.next,
-				 struct lquota_entry, lqe_link);
+		lqe = list_first_entry(&qsd->qsd_adjust_list,
+				       struct lquota_entry, lqe_link);
 		list_del_init(&lqe->lqe_link);
 		lqe_putref(lqe);
 	}

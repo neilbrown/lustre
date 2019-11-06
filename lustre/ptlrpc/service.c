@@ -447,9 +447,9 @@ static int ptlrpc_server_post_idle_rqbds(struct ptlrpc_service_part *svcpt)
 			return posted;
 		}
 
-		rqbd = list_entry(svcpt->scp_rqbd_idle.next,
-				      struct ptlrpc_request_buffer_desc,
-				      rqbd_list);
+		rqbd = list_first_entry(&svcpt->scp_rqbd_idle,
+					struct ptlrpc_request_buffer_desc,
+					rqbd_list);
 
 		/* assume we will post successfully */
 		svcpt->scp_nrqbds_posted++;
@@ -951,9 +951,9 @@ void ptlrpc_server_drop_request(struct ptlrpc_request *req)
 		 * I expect only about 1 or 2 rqbds need to be recycled here
 		 */
 		while (svcpt->scp_hist_nrqbds > svc->srv_hist_nrqbds_cpt_max) {
-			rqbd = list_entry(svcpt->scp_hist_rqbds.next,
-					  struct ptlrpc_request_buffer_desc,
-					  rqbd_list);
+			rqbd = list_first_entry(&svcpt->scp_hist_rqbds,
+						struct ptlrpc_request_buffer_desc,
+						rqbd_list);
 
 			list_del(&rqbd->rqbd_list);
 			svcpt->scp_hist_nrqbds--;
@@ -977,9 +977,9 @@ void ptlrpc_server_drop_request(struct ptlrpc_request *req)
 			spin_unlock(&svcpt->scp_lock);
 
 			list_for_each_safe(tmp, nxt, &rqbd->rqbd_reqs) {
-				req = list_entry(rqbd->rqbd_reqs.next,
-						 struct ptlrpc_request,
-						 rq_list);
+				req = list_first_entry(&rqbd->rqbd_reqs,
+						       struct ptlrpc_request,
+						       rq_list);
 				list_del(&req->rq_list);
 				ptlrpc_server_free_request(req);
 			}
@@ -1154,8 +1154,8 @@ void ptlrpc_update_export_timer(struct obd_export *exp, time64_t extra_delay)
 	list_move_tail(&exp->exp_obd_chain_timed,
 		       &exp->exp_obd->obd_exports_timed);
 
-	oldest_exp = list_entry(exp->exp_obd->obd_exports_timed.next,
-				struct obd_export, exp_obd_chain_timed);
+	oldest_exp = list_first_entry(&exp->exp_obd->obd_exports_timed,
+				      struct obd_export, exp_obd_chain_timed);
 	oldest_time = oldest_exp->exp_last_request_time;
 	spin_unlock(&exp->exp_obd->obd_dev_lock);
 
@@ -1621,8 +1621,8 @@ static int ptlrpc_at_check_timed(struct ptlrpc_service_part *svcpt)
 	 * locking is needed
 	 */
 	while (!list_empty(&work_list)) {
-		rq = list_entry(work_list.next, struct ptlrpc_request,
-				rq_timed_list);
+		rq = list_first_entry(&work_list, struct ptlrpc_request,
+				      rq_timed_list);
 		list_del_init(&rq->rq_timed_list);
 
 		if (ptlrpc_at_send_early_reply(rq) == 0)
@@ -2066,8 +2066,8 @@ static int ptlrpc_server_handle_req_in(struct ptlrpc_service_part *svcpt,
 		RETURN(0);
 	}
 
-	req = list_entry(svcpt->scp_req_incoming.next,
-			     struct ptlrpc_request, rq_list);
+	req = list_first_entry(&svcpt->scp_req_incoming,
+			       struct ptlrpc_request, rq_list);
 	list_del_init(&req->rq_list);
 	svcpt->scp_nreqs_incoming--;
 	/*
@@ -3090,8 +3090,8 @@ static void ptlrpc_svcpt_stop_threads(struct ptlrpc_service_part *svcpt)
 	wake_up_all(&svcpt->scp_waitq);
 
 	while (!list_empty(&svcpt->scp_threads)) {
-		thread = list_entry(svcpt->scp_threads.next,
-					struct ptlrpc_thread, t_link);
+		thread = list_first_entry(&svcpt->scp_threads,
+					  struct ptlrpc_thread, t_link);
 		if (thread_is_stopped(thread)) {
 			list_move(&thread->t_link, &zombie);
 			continue;
@@ -3109,8 +3109,8 @@ static void ptlrpc_svcpt_stop_threads(struct ptlrpc_service_part *svcpt)
 	spin_unlock(&svcpt->scp_lock);
 
 	while (!list_empty(&zombie)) {
-		thread = list_entry(zombie.next,
-					struct ptlrpc_thread, t_link);
+		thread = list_first_entry(&zombie,
+					  struct ptlrpc_thread, t_link);
 		list_del(&thread->t_link);
 		OBD_FREE_PTR(thread);
 	}
@@ -3469,8 +3469,9 @@ ptlrpc_service_purge_all(struct ptlrpc_service *svc)
 
 		spin_lock(&svcpt->scp_rep_lock);
 		while (!list_empty(&svcpt->scp_rep_active)) {
-			rs = list_entry(svcpt->scp_rep_active.next,
-					    struct ptlrpc_reply_state, rs_list);
+			rs = list_first_entry(&svcpt->scp_rep_active,
+					      struct ptlrpc_reply_state,
+					      rs_list);
 			spin_lock(&rs->rs_lock);
 			ptlrpc_schedule_difficult_reply(rs);
 			spin_unlock(&rs->rs_lock);
@@ -3483,8 +3484,8 @@ ptlrpc_service_purge_all(struct ptlrpc_service *svc)
 		 * thread noodling the request queue now
 		 */
 		while (!list_empty(&svcpt->scp_req_incoming)) {
-			req = list_entry(svcpt->scp_req_incoming.next,
-					     struct ptlrpc_request, rq_list);
+			req = list_first_entry(&svcpt->scp_req_incoming,
+					       struct ptlrpc_request, rq_list);
 
 			list_del(&req->rq_list);
 			svcpt->scp_nreqs_incoming--;
@@ -3511,17 +3512,17 @@ ptlrpc_service_purge_all(struct ptlrpc_service *svc)
 		 */
 
 		while (!list_empty(&svcpt->scp_rqbd_idle)) {
-			rqbd = list_entry(svcpt->scp_rqbd_idle.next,
-					      struct ptlrpc_request_buffer_desc,
-					      rqbd_list);
+			rqbd = list_first_entry(&svcpt->scp_rqbd_idle,
+						struct ptlrpc_request_buffer_desc,
+						rqbd_list);
 			ptlrpc_free_rqbd(rqbd);
 		}
 		ptlrpc_wait_replies(svcpt);
 
 		while (!list_empty(&svcpt->scp_rep_idle)) {
-			rs = list_entry(svcpt->scp_rep_idle.next,
-					    struct ptlrpc_reply_state,
-					    rs_list);
+			rs = list_first_entry(&svcpt->scp_rep_idle,
+					      struct ptlrpc_reply_state,
+					      rs_list);
 			list_del(&rs->rs_list);
 			OBD_FREE_LARGE(rs, svc->srv_max_reply_size);
 		}
