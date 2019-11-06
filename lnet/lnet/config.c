@@ -1489,8 +1489,8 @@ lnet_match_networks (char **networksp, char *ip2nets, __u32 *ipaddrs, int nip)
 	rc = 0;
 
 	while (!list_empty(&raw_entries)) {
-		tb = list_entry(raw_entries.next, struct lnet_text_buf,
-				ltb_list);
+		tb = list_first_entry(&raw_entries, struct lnet_text_buf,
+				      ltb_list);
 
 		strncpy(source, tb->ltb_text, sizeof(source));
 		source[sizeof(source) - 1] = '\0';

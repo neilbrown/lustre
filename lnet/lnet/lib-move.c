@@ -204,7 +204,7 @@ lnet_fail_nid(lnet_nid_t nid, unsigned int threshold)
 	lnet_net_unlock(0);
 
 	while (!list_empty(&cull)) {
-		tp = list_entry(cull.next, struct lnet_test_peer, tp_list);
+		tp = list_first_entry(&cull, struct lnet_test_peer, tp_list);
 
 		list_del(&tp->tp_list);
 		LIBCFS_FREE(tp, sizeof(*tp));
@@ -257,7 +257,7 @@ fail_peer (lnet_nid_t nid, int outgoing)
 	lnet_net_unlock(0);
 
 	while (!list_empty(&cull)) {
-		tp = list_entry(cull.next, struct lnet_test_peer, tp_list);
+		tp = list_first_entry(&cull, struct lnet_test_peer, tp_list);
 		list_del(&tp->tp_list);
 
 		LIBCFS_FREE(tp, sizeof(*tp));
@@ -1001,7 +1001,7 @@ lnet_post_routed_recv_locked(struct lnet_msg *msg, int do_recv)
 	}
 
 	LASSERT(!list_empty(&rbp->rbp_bufs));
-	rb = list_entry(rbp->rbp_bufs.next, struct lnet_rtrbuf, rb_list);
+	rb = list_first_entry(&rbp->rbp_bufs, struct lnet_rtrbuf, rb_list);
 	list_del(&rb->rb_list);
 
 	msg->msg_niov = rbp->rbp_npages;
@@ -1041,8 +1041,8 @@ lnet_return_tx_credits_locked(struct lnet_msg *msg)
 		tq->tq_credits++;
 		atomic_inc(&ni->ni_tx_credits);
 		if (tq->tq_credits <= 0) {
-			msg2 = list_entry(tq->tq_delayed.next,
-					  struct lnet_msg, msg_list);
+			msg2 = list_first_entry(&tq->tq_delayed,
+						struct lnet_msg, msg_list);
 			list_del(&msg2->msg_list);
 
 			LASSERT(msg2->msg_txni == ni);
@@ -1068,8 +1068,8 @@ lnet_return_tx_credits_locked(struct lnet_msg *msg)
 		if (txpeer->lpni_txcredits <= 0) {
 			int msg2_cpt;
 
-			msg2 = list_entry(txpeer->lpni_txq.next,
-					      struct lnet_msg, msg_list);
+			msg2 = list_first_entry(&txpeer->lpni_txq,
+						struct lnet_msg, msg_list);
 			list_del(&msg2->msg_list);
 			spin_unlock(&txpeer->lpni_lock);
 
@@ -1121,8 +1121,8 @@ lnet_schedule_blocked_locked(struct lnet_rtrbufpool *rbp)
 
 	if (list_empty(&rbp->rbp_msgs))
 		return;
-	msg = list_entry(rbp->rbp_msgs.next,
-			 struct lnet_msg, msg_list);
+	msg = list_first_entry(&rbp->rbp_msgs,
+			       struct lnet_msg, msg_list);
 	list_del(&msg->msg_list);
 
 	(void)lnet_post_routed_recv_locked(msg, 1);
@@ -1227,8 +1227,8 @@ routing_off:
 		} else if (!list_empty(&lp->lp_rtrq)) {
 			int msg2_cpt;
 
-			msg2 = list_entry(lp->lp_rtrq.next,
-					  struct lnet_msg, msg_list);
+			msg2 = list_first_entry(&lp->lp_rtrq,
+						struct lnet_msg, msg_list);
 			list_del(&msg2->msg_list);
 			msg2_cpt = msg2->msg_rx_cpt;
 			spin_unlock(&lp->lp_lock);
@@ -3222,8 +3222,8 @@ lnet_clean_local_ni_recoveryq(void)
 	lnet_net_lock(0);
 
 	while (!list_empty(&the_lnet.ln_mt_localNIRecovq)) {
-		ni = list_entry(the_lnet.ln_mt_localNIRecovq.next,
-				struct lnet_ni, ni_recovery);
+		ni = list_first_entry(&the_lnet.ln_mt_localNIRecovq,
+				      struct lnet_ni, ni_recovery);
 		list_del_init(&ni->ni_recovery);
 		lnet_ni_lock(ni);
 		lnet_unlink_ni_recovery_mdh_locked(ni, 0, true);

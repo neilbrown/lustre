@@ -1283,8 +1283,8 @@ lnet_net2ni_locked(__u32 net_id, int cpt)
 
 	list_for_each_entry(net, &the_lnet.ln_nets, net_list) {
 		if (net->net_id == net_id) {
-			ni = list_entry(net->net_ni_list.next, struct lnet_ni,
-					ni_netlist);
+			ni = list_first_entry(&net->net_ni_list, struct lnet_ni,
+					      ni_netlist);
 			return ni;
 		}
 	}
@@ -2087,8 +2087,8 @@ lnet_shutdown_lndnet(struct lnet_net *net)
 	list_del_init(&net->net_list);
 
 	while (!list_empty(&net->net_ni_list)) {
-		ni = list_entry(net->net_ni_list.next,
-				struct lnet_ni, ni_netlist);
+		ni = list_first_entry(&net->net_ni_list,
+				      struct lnet_ni, ni_netlist);
 		lnet_net_unlock(LNET_LOCK_EX);
 		lnet_shutdown_lndni(ni);
 		lnet_net_lock(LNET_LOCK_EX);
@@ -2134,8 +2134,8 @@ lnet_shutdown_lndnets(void)
 
 	/* iterate through the net zombie list and delete each net */
 	while (!list_empty(&the_lnet.ln_net_zombie)) {
-		net = list_entry(the_lnet.ln_net_zombie.next,
-				 struct lnet_net, net_list);
+		net = list_first_entry(&the_lnet.ln_net_zombie,
+				       struct lnet_net, net_list);
 		lnet_shutdown_lndnet(net);
 	}
 
@@ -2324,8 +2324,8 @@ lnet_startup_lndnet(struct lnet_net *net, struct lnet_lnd_tunables *tun)
 	}
 
 	while (!list_empty(&net->net_ni_added)) {
-		ni = list_entry(net->net_ni_added.next, struct lnet_ni,
-				ni_netlist);
+		ni = list_first_entry(&net->net_ni_added, struct lnet_ni,
+				      ni_netlist);
 		list_del_init(&ni->ni_netlist);
 
 		/* make sure that the the NI we're about to start
@@ -2393,8 +2393,8 @@ failed1:
 	 * free the NET being started
 	 */
 	while (!list_empty(&local_ni_list)) {
-		ni = list_entry(local_ni_list.next, struct lnet_ni,
-				ni_netlist);
+		ni = list_first_entry(&local_ni_list, struct lnet_ni,
+				      ni_netlist);
 
 		lnet_shutdown_lndni(ni);
 	}
@@ -2663,7 +2663,7 @@ err_empty_list:
 	while (!list_empty(&net_head)) {
 		struct lnet_net *net;
 
-		net = list_entry(net_head.next, struct lnet_net, net_list);
+		net = list_first_entry(&net_head, struct lnet_net, net_list);
 		list_del_init(&net->net_list);
 		lnet_net_free(net);
 	}
@@ -2905,12 +2905,13 @@ lnet_get_next_ni_locked(struct lnet_net *mynet, struct lnet_ni *prev)
 	 */
 	if (prev == NULL) {
 		if (net == NULL)
-			net = list_entry(the_lnet.ln_nets.next, struct lnet_net,
-					net_list);
+			net = list_first_entry(&the_lnet.ln_nets,
+					       struct lnet_net,
+					       net_list);
 		if (list_empty(&net->net_ni_list))
 			return NULL;
-		ni = list_entry(net->net_ni_list.next, struct lnet_ni,
-				ni_netlist);
+		ni = list_first_entry(&net->net_ni_list, struct lnet_ni,
+				      ni_netlist);
 
 		return ni;
 	}
@@ -2933,8 +2934,8 @@ lnet_get_next_ni_locked(struct lnet_net *mynet, struct lnet_ni *prev)
 		if (list_empty(&net->net_ni_list))
 			return NULL;
 		/* get the ni on it */
-		ni = list_entry(net->net_ni_list.next, struct lnet_ni,
-				ni_netlist);
+		ni = list_first_entry(&net->net_ni_list, struct lnet_ni,
+				      ni_netlist);
 
 		return ni;
 	}
@@ -3130,7 +3131,7 @@ static int lnet_handle_legacy_ip2nets(char *ip2nets,
 
 	mutex_lock(&the_lnet.ln_api_mutex);
 	while (!list_empty(&net_head)) {
-		net = list_entry(net_head.next, struct lnet_net, net_list);
+		net = list_first_entry(&net_head, struct lnet_net, net_list);
 		list_del_init(&net->net_list);
 		rc = lnet_add_net_common(net, tun);
 		if (rc < 0)
@@ -3141,7 +3142,7 @@ out:
 	mutex_unlock(&the_lnet.ln_api_mutex);
 
 	while (!list_empty(&net_head)) {
-		net = list_entry(net_head.next, struct lnet_net, net_list);
+		net = list_first_entry(&net_head, struct lnet_net, net_list);
 		list_del_init(&net->net_list);
 		lnet_net_free(net);
 	}
@@ -3313,7 +3314,7 @@ lnet_dyn_add_net(struct lnet_ioctl_config_data *conf)
 		goto out_unlock_clean;
 	}
 
-	net = list_entry(net_head.next, struct lnet_net, net_list);
+	net = list_first_entry(&net_head, struct lnet_net, net_list);
 	list_del_init(&net->net_list);
 
 	LASSERT(lnet_net_unique(net->net_id, &the_lnet.ln_nets, NULL));
@@ -3335,7 +3336,7 @@ out_unlock_clean:
 	mutex_unlock(&the_lnet.ln_api_mutex);
 	while (!list_empty(&net_head)) {
 		/* net_head list is empty in success case */
-		net = list_entry(net_head.next, struct lnet_net, net_list);
+		net = list_first_entry(&net_head, struct lnet_net, net_list);
 		list_del_init(&net->net_list);
 		lnet_net_free(net);
 	}

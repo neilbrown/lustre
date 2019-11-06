@@ -1210,7 +1210,7 @@ lnet_rtrpool_free_bufs(struct lnet_rtrbufpool *rbp, int cpt)
 
 	/* Free buffers on the free list. */
 	while (!list_empty(&tmp)) {
-		rb = list_entry(tmp.next, struct lnet_rtrbuf, rb_list);
+		rb = list_first_entry(&tmp, struct lnet_rtrbuf, rb_list);
 		list_del(&rb->rb_list);
 		lnet_destroy_rtrbuf(rb, npages);
 	}
@@ -1285,7 +1285,7 @@ lnet_rtrpool_adjust_bufs(struct lnet_rtrbufpool *rbp, int nbufs, int cpt)
 
 failed:
 	while (!list_empty(&rb_list)) {
-		rb = list_entry(rb_list.next, struct lnet_rtrbuf, rb_list);
+		rb = list_first_entry(&rb_list, struct lnet_rtrbuf, rb_list);
 		list_del(&rb->rb_list);
 		lnet_destroy_rtrbuf(rb, npages);
 	}

@@ -731,7 +731,7 @@ lnet_attempt_msg_resend(struct lnet_msg *msg)
 	}
 
 	while (!list_empty(&container->msc_resending)) {
-		msg = list_entry(container->msc_resending.next,
+		msg = list_first_entry(&container->msc_resending,
 					struct lnet_msg, msg_list);
 		list_del(&msg->msg_list);
 
@@ -1143,8 +1143,8 @@ again:
 
 	rc = 0;
 	while (!list_empty(&container->msc_finalizing)) {
-		msg = list_entry(container->msc_finalizing.next,
-				 struct lnet_msg, msg_list);
+		msg = list_first_entry(&container->msc_finalizing,
+				       struct lnet_msg, msg_list);
 
 		list_del_init(&msg->msg_list);
 
@@ -1180,8 +1180,8 @@ lnet_msg_container_cleanup(struct lnet_msg_container *container)
 	while (!list_empty(&container->msc_active)) {
 		struct lnet_msg *msg;
 
-		msg  = list_entry(container->msc_active.next,
-				  struct lnet_msg, msg_activelist);
+		msg  = list_first_entry(&container->msc_active,
+					struct lnet_msg, msg_activelist);
 		LASSERT(msg->msg_onactivelist);
 		msg->msg_onactivelist = 0;
 		list_del_init(&msg->msg_activelist);

@@ -438,7 +438,7 @@ ksocknal_handle_zcack(struct ksock_conn *conn, __u64 cookie1, __u64 cookie2)
 	spin_unlock(&peer_ni->ksnp_lock);
 
 	while (!list_empty(&zlist)) {
-		tx = list_entry(zlist.next, struct ksock_tx, tx_zc_list);
+		tx = list_first_entry(&zlist, struct ksock_tx, tx_zc_list);
 		list_del(&tx->tx_zc_list);
                 ksocknal_tx_decref(tx);
         }

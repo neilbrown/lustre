@@ -39,8 +39,8 @@ ksocknal_alloc_tx(int type, int size)
 		spin_lock(&ksocknal_data.ksnd_tx_lock);
 
 		if (!list_empty(&ksocknal_data.ksnd_idle_noop_txs)) {
-			tx = list_entry(ksocknal_data.ksnd_idle_noop_txs.next,
-					struct ksock_tx, tx_list);
+			tx = list_first_entry(&ksocknal_data.ksnd_idle_noop_txs,
+					      struct ksock_tx, tx_list);
 			LASSERT(tx->tx_desc_size == size);
 			list_del(&tx->tx_list);
 		}
@@ -1465,8 +1465,9 @@ int ksocknal_scheduler(void *arg)
 		/* Ensure I progress everything semi-fairly */
 
 		if (!list_empty(&sched->kss_rx_conns)) {
-			conn = list_entry(sched->kss_rx_conns.next,
-					  struct ksock_conn, ksnc_rx_list);
+			conn = list_first_entry(&sched->kss_rx_conns,
+						struct ksock_conn,
+						ksnc_rx_list);
 			list_del(&conn->ksnc_rx_list);
 
 			LASSERT(conn->ksnc_rx_scheduled);
@@ -1514,16 +1515,17 @@ int ksocknal_scheduler(void *arg)
 
 			list_splice_init(&sched->kss_zombie_noop_txs, &zlist);
 
-			conn = list_entry(sched->kss_tx_conns.next,
-					  struct ksock_conn, ksnc_tx_list);
+			conn = list_first_entry(&sched->kss_tx_conns,
+						struct ksock_conn,
+						ksnc_tx_list);
 			list_del(&conn->ksnc_tx_list);
 
 			LASSERT(conn->ksnc_tx_scheduled);
 			LASSERT(conn->ksnc_tx_ready);
 			LASSERT(!list_empty(&conn->ksnc_tx_queue));
 
-			tx = list_entry(conn->ksnc_tx_queue.next,
-					struct ksock_tx, tx_list);
+			tx = list_first_entry(&conn->ksnc_tx_queue,
+					      struct ksock_tx, tx_list);
 
 			if (conn->ksnc_tx_carrier == tx)
 				ksocknal_next_tx_carrier(conn);
@@ -2032,18 +2034,18 @@ ksocknal_connect(struct ksock_route *route)
             ksocknal_find_connecting_route_locked(peer_ni) == NULL) {
 		struct ksock_conn *conn;
 
-                /* ksnp_tx_queue is queued on a conn on successful
-                 * connection for V1.x and V2.x */
+		/* ksnp_tx_queue is queued on a conn on successful
+		 * connection for V1.x and V2.x */
 		if (!list_empty(&peer_ni->ksnp_conns)) {
-			conn = list_entry(peer_ni->ksnp_conns.next,
-					  struct ksock_conn, ksnc_list);
-                        LASSERT (conn->ksnc_proto == &ksocknal_protocol_v3x);
-                }
+			conn = list_first_entry(&peer_ni->ksnp_conns,
+						struct ksock_conn, ksnc_list);
+			LASSERT (conn->ksnc_proto == &ksocknal_protocol_v3x);
+		}
 
-                /* take all the blocked packets while I've got the lock and
-                 * complete below... */
+		/* take all the blocked packets while I've got the lock and
+		 * complete below... */
 		list_splice_init(&peer_ni->ksnp_tx_queue, &zombies);
-        }
+	}
 
 	write_unlock_bh(&ksocknal_data.ksnd_global_lock);
 
@@ -2214,9 +2216,9 @@ ksocknal_connd(void *arg)
                 }
 
 		if (!list_empty(&ksocknal_data.ksnd_connd_connreqs)) {
-                        /* Connection accepted by the listener */
-			cr = list_entry(ksocknal_data.ksnd_connd_connreqs.next,
-					struct ksock_connreq, ksncr_list);
+			/* Connection accepted by the listener */
+			cr = list_first_entry(&ksocknal_data.ksnd_connd_connreqs,
+					      struct ksock_connreq, ksncr_list);
 
 			list_del(&cr->ksncr_list);
 			spin_unlock_bh(connd_lock);
@@ -2373,8 +2375,8 @@ ksocknal_flush_stale_txs(struct ksock_peer_ni *peer_ni)
 	write_lock_bh(&ksocknal_data.ksnd_global_lock);
 
 	while (!list_empty(&peer_ni->ksnp_tx_queue)) {
-		tx = list_entry(peer_ni->ksnp_tx_queue.next,
-				struct ksock_tx, tx_list);
+		tx = list_first_entry(&peer_ni->ksnp_tx_queue,
+				      struct ksock_tx, tx_list);
 
 		if (ktime_get_seconds() < tx->tx_deadline)
 			break;
@@ -2498,8 +2500,8 @@ ksocknal_check_peer_timeouts(int idx)
 		if (!list_empty(&peer_ni->ksnp_tx_queue)) {
 			struct ksock_tx *tx;
 
-			tx = list_entry(peer_ni->ksnp_tx_queue.next,
-					struct ksock_tx, tx_list);
+			tx = list_first_entry(&peer_ni->ksnp_tx_queue,
+					      struct ksock_tx, tx_list);
 			if (ktime_get_seconds() >= tx->tx_deadline) {
 				ksocknal_peer_addref(peer_ni);
 				read_unlock(&ksocknal_data.ksnd_global_lock);
@@ -2573,8 +2575,8 @@ int ksocknal_reaper(void *arg)
 
         while (!ksocknal_data.ksnd_shuttingdown) {
 		if (!list_empty(&ksocknal_data.ksnd_deathrow_conns)) {
-			conn = list_entry(ksocknal_data.ksnd_deathrow_conns.next,
-					  struct ksock_conn, ksnc_list);
+			conn = list_first_entry(&ksocknal_data.ksnd_deathrow_conns,
+						struct ksock_conn, ksnc_list);
 			list_del(&conn->ksnc_list);
 
 			spin_unlock_bh(&ksocknal_data.ksnd_reaper_lock);
@@ -2587,8 +2589,8 @@ int ksocknal_reaper(void *arg)
                 }
 
 		if (!list_empty(&ksocknal_data.ksnd_zombie_conns)) {
-			conn = list_entry(ksocknal_data.ksnd_zombie_conns.next,
-					  struct ksock_conn, ksnc_list);
+			conn = list_first_entry(&ksocknal_data.ksnd_zombie_conns,
+						struct ksock_conn, ksnc_list);
 			list_del(&conn->ksnc_list);
 
 			spin_unlock_bh(&ksocknal_data.ksnd_reaper_lock);
@@ -2604,14 +2606,15 @@ int ksocknal_reaper(void *arg)
 
 		spin_unlock_bh(&ksocknal_data.ksnd_reaper_lock);
 
-                /* reschedule all the connections that stalled with ENOMEM... */
-                nenomem_conns = 0;
+		/* reschedule all the connections that stalled with ENOMEM... */
+		nenomem_conns = 0;
 		while (!list_empty(&enomem_conns)) {
-			conn = list_entry(enomem_conns.next,
-					  struct ksock_conn, ksnc_tx_list);
+			conn = list_first_entry(&enomem_conns,
+						struct ksock_conn,
+						ksnc_tx_list);
 			list_del(&conn->ksnc_tx_list);
 
-                        sched = conn->ksnc_scheduler;
+			sched = conn->ksnc_scheduler;
 
 			spin_lock_bh(&sched->kss_lock);
 
@@ -2622,8 +2625,8 @@ int ksocknal_reaper(void *arg)
 			wake_up(&sched->kss_waitq);
 
 			spin_unlock_bh(&sched->kss_lock);
-                        nenomem_conns++;
-                }
+			nenomem_conns++;
+		}
 
 		/* careful with the jiffy wrap... */
 		while ((timeout = deadline - ktime_get_seconds()) <= 0) {

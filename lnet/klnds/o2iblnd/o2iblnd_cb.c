@@ -975,8 +975,8 @@ kiblnd_check_sends_locked(struct kib_conn *conn)
 
         while (conn->ibc_reserved_credits > 0 &&
 	       !list_empty(&conn->ibc_tx_queue_rsrvd)) {
-		tx = list_entry(conn->ibc_tx_queue_rsrvd.next,
-				struct kib_tx, tx_list);
+		tx = list_first_entry(&conn->ibc_tx_queue_rsrvd,
+				      struct kib_tx, tx_list);
 		list_move_tail(&tx->tx_list, &conn->ibc_tx_queue);
                 conn->ibc_reserved_credits--;
         }
@@ -993,28 +993,28 @@ kiblnd_check_sends_locked(struct kib_conn *conn)
                         kiblnd_queue_tx_locked(tx, conn);
         }
 
-        for (;;) {
-                int credit;
+	for (;;) {
+		int credit;
 
 		if (!list_empty(&conn->ibc_tx_queue_nocred)) {
-                        credit = 0;
-			tx = list_entry(conn->ibc_tx_queue_nocred.next,
-					struct kib_tx, tx_list);
+			credit = 0;
+			tx = list_first_entry(&conn->ibc_tx_queue_nocred,
+					      struct kib_tx, tx_list);
 		} else if (!list_empty(&conn->ibc_tx_noops)) {
-                        LASSERT (!IBLND_OOB_CAPABLE(ver));
-                        credit = 1;
-			tx = list_entry(conn->ibc_tx_noops.next,
-					struct kib_tx, tx_list);
+			LASSERT (!IBLND_OOB_CAPABLE(ver));
+			credit = 1;
+			tx = list_first_entry(&conn->ibc_tx_noops,
+					      struct kib_tx, tx_list);
 		} else if (!list_empty(&conn->ibc_tx_queue)) {
-                        credit = 1;
-			tx = list_entry(conn->ibc_tx_queue.next,
-					struct kib_tx, tx_list);
-                } else
-                        break;
+			credit = 1;
+			tx = list_first_entry(&conn->ibc_tx_queue,
+					      struct kib_tx, tx_list);
+		} else
+			break;
 
-                if (kiblnd_post_tx_locked(conn, tx, credit) != 0)
-                        break;
-        }
+		if (kiblnd_post_tx_locked(conn, tx, credit) != 0)
+			break;
+	}
 }
 
 static void
@@ -2025,8 +2025,8 @@ kiblnd_handle_early_rxs(struct kib_conn *conn)
 
 	write_lock_irqsave(&kiblnd_data.kib_global_lock, flags);
 	while (!list_empty(&conn->ibc_early_rxs)) {
-		rx = list_entry(conn->ibc_early_rxs.next,
-				struct kib_rx, rx_list);
+		rx = list_first_entry(&conn->ibc_early_rxs,
+				      struct kib_rx, rx_list);
 		list_del(&rx->rx_list);
 		write_unlock_irqrestore(&kiblnd_data.kib_global_lock, flags);
 
@@ -2272,7 +2272,7 @@ kiblnd_connreq_done(struct kib_conn *conn, int status)
 	 */
 	spin_lock(&conn->ibc_lock);
 	while (!list_empty(&txs)) {
-		tx = list_entry(txs.next, struct kib_tx, tx_list);
+		tx = list_first_entry(&txs, struct kib_tx, tx_list);
 		list_del(&tx->tx_list);
 
 		kiblnd_queue_tx_locked(tx, conn);
@@ -3333,8 +3333,8 @@ kiblnd_check_conns (int idx)
 	 * connection. We can only be sure RDMA activity
 	 * has ceased once the QP has been modified. */
 	while (!list_empty(&closes)) {
-		conn = list_entry(closes.next,
-				  struct kib_conn, ibc_connd_list);
+		conn = list_first_entry(&closes,
+					struct kib_conn, ibc_connd_list);
 		list_del(&conn->ibc_connd_list);
 		kiblnd_close_conn(conn, -ETIMEDOUT);
 		kiblnd_conn_decref(conn);
@@ -3344,8 +3344,8 @@ kiblnd_check_conns (int idx)
 	 * NOOP, but there were no non-blocking tx descs
 	 * free to do it last time... */
 	while (!list_empty(&checksends)) {
-		conn = list_entry(checksends.next,
-				  struct kib_conn, ibc_connd_list);
+		conn = list_first_entry(&checksends,
+					struct kib_conn, ibc_connd_list);
 		list_del(&conn->ibc_connd_list);
 
 		spin_lock(&conn->ibc_lock);
@@ -3406,8 +3406,8 @@ kiblnd_connd (void *arg)
 		if (!list_empty(&kiblnd_data.kib_connd_zombies)) {
 			struct kib_peer_ni *peer_ni = NULL;
 
-			conn = list_entry(kiblnd_data.kib_connd_zombies.next,
-					  struct kib_conn, ibc_list);
+			conn = list_first_entry(&kiblnd_data.kib_connd_zombies,
+						struct kib_conn, ibc_list);
 			list_del(&conn->ibc_list);
 			if (conn->ibc_reconnect) {
 				peer_ni = conn->ibc_peer;
@@ -3435,8 +3435,8 @@ kiblnd_connd (void *arg)
 		}
 
 		if (!list_empty(&kiblnd_data.kib_connd_conns)) {
-			conn = list_entry(kiblnd_data.kib_connd_conns.next,
-					  struct kib_conn, ibc_list);
+			conn = list_first_entry(&kiblnd_data.kib_connd_conns,
+						struct kib_conn, ibc_list);
 			list_del(&conn->ibc_list);
 
 			spin_unlock_irqrestore(lock, flags);
@@ -3459,8 +3459,8 @@ kiblnd_connd (void *arg)
 			if (list_empty(&kiblnd_data.kib_reconn_list))
 				break;
 
-			conn = list_entry(kiblnd_data.kib_reconn_list.next,
-					  struct kib_conn, ibc_list);
+			conn = list_first_entry(&kiblnd_data.kib_reconn_list,
+						struct kib_conn, ibc_list);
 			list_del(&conn->ibc_list);
 
 			spin_unlock_irqrestore(lock, flags);
@@ -3679,8 +3679,8 @@ kiblnd_scheduler(void *arg)
 		did_something = 0;
 
 		if (!list_empty(&sched->ibs_conns)) {
-			conn = list_entry(sched->ibs_conns.next,
-					  struct kib_conn, ibc_sched_list);
+			conn = list_first_entry(&sched->ibs_conns,
+						struct kib_conn, ibc_sched_list);
 			/* take over kib_sched_conns' ref on conn... */
 			LASSERT(conn->ibc_scheduled);
 			list_del(&conn->ibc_sched_list);

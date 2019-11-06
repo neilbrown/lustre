@@ -1664,9 +1664,9 @@ kiblnd_fail_fmr_poolset(struct kib_fmr_poolset *fps, struct list_head *zombies)
 	spin_lock(&fps->fps_lock);
 
 	while (!list_empty(&fps->fps_pool_list)) {
-		struct kib_fmr_pool *fpo = list_entry(fps->fps_pool_list.next,
-						      struct kib_fmr_pool,
-						      fpo_list);
+		struct kib_fmr_pool *fpo = list_first_entry(&fps->fps_pool_list,
+							    struct kib_fmr_pool,
+							    fpo_list);
 
 		fpo->fpo_failed = 1;
 		if (fpo->fpo_map_count == 0)
@@ -2036,8 +2036,9 @@ kiblnd_fail_poolset(struct kib_poolset *ps, struct list_head *zombies)
 
 	spin_lock(&ps->ps_lock);
 	while (!list_empty(&ps->ps_pool_list)) {
-		struct kib_pool *po = list_entry(ps->ps_pool_list.next,
-						 struct kib_pool, po_list);
+		struct kib_pool *po = list_first_entry(&ps->ps_pool_list,
+						       struct kib_pool,
+						       po_list);
 
 		po->po_failed = 1;
 		if (po->po_allocated == 0)
