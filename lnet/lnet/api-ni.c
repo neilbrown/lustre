@@ -1727,10 +1727,9 @@ lnet_ping_md_unlink(struct lnet_ping_buffer *pbuf,
 	LNetInvalidateMDHandle(ping_mdh);
 
 	/* NB the MD could be busy; this just starts the unlink */
-	while (atomic_read(&pbuf->pb_refcnt) > 1) {
-		CDEBUG(D_NET, "Still waiting for ping data MD to unlink\n");
-		schedule_timeout_uninterruptible(cfs_time_seconds(1));
-	}
+	wait_var_event_warning(&pbuf->pb_refcnt,
+			       atomic_read(&pbuf->pb_refcnt) <= 1,
+			       "Still waiting for ping data MD to unlink\n");
 }
 
 static void
@@ -1947,10 +1946,9 @@ static void lnet_push_target_fini(void)
 	LNetInvalidateMDHandle(&the_lnet.ln_push_target_md);
 
 	/* Wait for the unlink to complete. */
-	while (atomic_read(&the_lnet.ln_push_target->pb_refcnt) > 1) {
-		CDEBUG(D_NET, "Still waiting for ping data MD to unlink\n");
-		schedule_timeout_uninterruptible(cfs_time_seconds(1));
-	}
+	wait_var_event_warning(&the_lnet.ln_push_target->pb_refcnt,
+			       atomic_read(&the_lnet.ln_push_target->pb_refcnt) <= 1,
+			       "Still waiting for ping data MD to unlink\n");
 
 	lnet_ping_buffer_decref(the_lnet.ln_push_target);
 	the_lnet.ln_push_target = NULL;
