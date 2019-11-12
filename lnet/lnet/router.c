@@ -497,15 +497,12 @@ struct lnet_remotenet *
 lnet_find_rnet_locked(__u32 net)
 {
 	struct lnet_remotenet *rnet;
-	struct list_head *tmp;
 	struct list_head *rn_list;
 
 	LASSERT(the_lnet.ln_state == LNET_STATE_RUNNING);
 
 	rn_list = lnet_net2rnethash(net);
-	list_for_each(tmp, rn_list) {
-		rnet = list_entry(tmp, struct lnet_remotenet, lrn_list);
-
+	list_for_each_entry(rnet, rn_list, lrn_list) {
 		if (rnet->lrn_net == net)
 			return rnet;
 	}
@@ -576,7 +573,7 @@ int
 lnet_add_route(__u32 net, __u32 hops, lnet_nid_t gateway,
 	       __u32 priority, __u32 sensitivity)
 {
-	struct list_head *route_entry;
+	struct lnet_route *route2;
 	struct lnet_remotenet *rnet;
 	struct lnet_remotenet *rnet2;
 	struct lnet_route *route;
@@ -663,10 +660,7 @@ lnet_add_route(__u32 net, __u32 hops, lnet_nid_t gateway,
 
 	/* Search for a duplicate route (it's a NOOP if it is) */
 	add_route = 1;
-	list_for_each(route_entry, &rnet2->lrn_routes) {
-		struct lnet_route *route2;
-
-		route2 = list_entry(route_entry, struct lnet_route, lr_list);
+	list_for_each_entry(route2, &rnet2->lrn_routes, lr_list) {
 		if (route2->lr_gateway == route->lr_gateway) {
 			add_route = 0;
 			break;
@@ -873,8 +867,6 @@ lnet_get_route(int idx, __u32 *net, __u32 *hops,
 	struct lnet_remotenet *rnet;
 	struct list_head *rn_list;
 	struct lnet_route *route;
-	struct list_head *e1;
-	struct list_head *e2;
 	int cpt;
 	int i;
 
@@ -882,13 +874,8 @@ lnet_get_route(int idx, __u32 *net, __u32 *hops,
 
 	for (i = 0; i < LNET_REMOTE_NETS_HASH_SIZE; i++) {
 		rn_list = &the_lnet.ln_remote_nets_hash[i];
-		list_for_each(e1, rn_list) {
-			rnet = list_entry(e1, struct lnet_remotenet, lrn_list);
-
-			list_for_each(e2, &rnet->lrn_routes) {
-				route = list_entry(e2, struct lnet_route,
-						   lr_list);
-
+		list_for_each_entry(rnet, rn_list, lrn_list) {
+			list_for_each_entry(route, &rnet->lrn_routes, lr_list) {
 				if (idx-- == 0) {
 					*net	  = rnet->lrn_net;
 					*gateway  = route->lr_nid;
@@ -912,7 +899,6 @@ static void
 lnet_wait_known_routerstate(void)
 {
 	struct lnet_peer *rtr;
-	struct list_head *entry;
 	int all_known;
 
 	LASSERT(the_lnet.ln_mt_state == LNET_MT_STATE_RUNNING);
@@ -921,10 +907,7 @@ lnet_wait_known_routerstate(void)
 		int cpt = lnet_net_lock_current();
 
 		all_known = 1;
-		list_for_each(entry, &the_lnet.ln_routers) {
-			rtr = list_entry(entry, struct lnet_peer,
-					 lp_rtr_list);
-
+		list_for_each_entry(rtr, &the_lnet.ln_routers, lp_rtr_list) {
 			spin_lock(&rtr->lp_lock);
 
 			if ((rtr->lp_state & LNET_PEER_RTR_DISCOVERED) == 0) {
@@ -1034,7 +1017,6 @@ lnet_check_routers(void)
 	struct lnet_peer_net *first_lpn = NULL;
 	struct lnet_peer_net *lpn;
 	struct lnet_peer_ni *lpni;
-	struct list_head *entry;
 	struct lnet_peer *rtr;
 	bool push = false;
 	bool found_lpn;
@@ -1048,10 +1030,7 @@ lnet_check_routers(void)
 rescan:
 	version = the_lnet.ln_routers_version;
 
-	list_for_each(entry, &the_lnet.ln_routers) {
-		rtr = list_entry(entry, struct lnet_peer,
-				 lp_rtr_list);
-
+	list_for_each_entry(rtr, &the_lnet.ln_routers, lp_rtr_list) {
 		now = ktime_get_real_seconds();
 
 		/*

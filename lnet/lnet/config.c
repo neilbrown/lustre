@@ -107,11 +107,9 @@ lnet_net_unique(__u32 net_id, struct list_head *netlist,
 bool
 lnet_ni_unique_net(struct list_head *nilist, char *iface)
 {
-	struct list_head *tmp;
 	struct lnet_ni *ni;
 
-	list_for_each(tmp, nilist) {
-		ni = list_entry(tmp, struct lnet_ni, ni_netlist);
+	list_for_each_entry(ni, nilist, ni_netlist) {
 
 		if (ni->ni_interfaces[0] != NULL &&
 		    strncmp(ni->ni_interfaces[0], iface, strlen(iface)) == 0)
@@ -1112,7 +1110,7 @@ lnet_parse_route (char *str, int *im_a_router)
 	struct list_head *tmp2;
 	__u32		  net;
 	lnet_nid_t	  nid;
-	struct lnet_text_buf  *ltb;
+	struct lnet_text_buf  *ltb, *ltb2;
 	int		  rc;
 	char		 *sep;
 	char		 *token = str;
@@ -1206,14 +1204,12 @@ lnet_parse_route (char *str, int *im_a_router)
 	LASSERT(!list_empty(&nets));
 	LASSERT(!list_empty(&gateways));
 
-	list_for_each(tmp1, &nets) {
-		ltb = list_entry(tmp1, struct lnet_text_buf, ltb_list);
+	list_for_each_entry(ltb, &nets, ltb_list) {
 		net = libcfs_str2net(ltb->ltb_text);
 		LASSERT (net != LNET_NIDNET(LNET_NID_ANY));
 
-		list_for_each(tmp2, &gateways) {
-			ltb = list_entry(tmp2, struct lnet_text_buf, ltb_list);
-			nid = libcfs_str2nid(ltb->ltb_text);
+		list_for_each_entry(ltb2, &gateways, ltb_list) {
+			nid = libcfs_str2nid(ltb2->ltb_text);
 			LASSERT(nid != LNET_NID_ANY);
 
 			if (lnet_islocalnid(nid)) {
@@ -1223,8 +1219,7 @@ lnet_parse_route (char *str, int *im_a_router)
 
 			rc = lnet_add_route(net, hops, nid, priority, 1);
 			if (rc != 0 && rc != -EEXIST && rc != -EHOSTUNREACH) {
-				CERROR("Can't create route "
-				       "to %s via %s\n",
+				CERROR("Can't create route to %s via %s\n",
 				       libcfs_net2str(net),
 				       libcfs_nid2str(nid));
 				goto out;
@@ -1383,7 +1378,6 @@ lnet_splitnets(char *source, struct list_head *nets)
 	int		  len;
 	struct lnet_text_buf  *tb;
 	struct lnet_text_buf  *tb2;
-	struct list_head *t;
 	char		 *sep;
 	char		 *bracket;
 	__u32		  net;
@@ -1426,9 +1420,7 @@ lnet_splitnets(char *source, struct list_head *nets)
 			return -EINVAL;
 		}
 
-		list_for_each(t, nets) {
-			tb2 = list_entry(t, struct lnet_text_buf, ltb_list);
-
+		list_for_each_entry(tb2, nets, ltb_list) {
 			if (tb2 == tb)
 				continue;
 
@@ -1515,14 +1507,11 @@ lnet_match_networks (char **networksp, char *ip2nets, __u32 *ipaddrs, int nip)
 			break;
 
 		dup = 0;
-		list_for_each(t, &current_nets) {
-			tb = list_entry(t, struct lnet_text_buf, ltb_list);
+		list_for_each_entry(tb, &current_nets, ltb_list) {
 			net1 = lnet_netspec2net(tb->ltb_text);
 			LASSERT(net1 != LNET_NIDNET(LNET_NID_ANY));
 
-			list_for_each(t2, &matched_nets) {
-				tb2 = list_entry(t2, struct lnet_text_buf,
-						 ltb_list);
+			list_for_each_entry(tb2, &matched_nets, ltb_list) {
 				net2 = lnet_netspec2net(tb2->ltb_text);
 				LASSERT(net2 != LNET_NIDNET(LNET_NID_ANY));
 

@@ -4996,7 +4996,6 @@ EXPORT_SYMBOL(LNetGet);
 int
 LNetDist(lnet_nid_t dstnid, lnet_nid_t *srcnidp, __u32 *orderp)
 {
-	struct list_head	*e;
 	struct lnet_ni *ni = NULL;
 	struct lnet_remotenet *rnet;
 	__u32			dstnet = LNET_NIDNET(dstnid);
@@ -5049,9 +5048,7 @@ LNetDist(lnet_nid_t dstnid, lnet_nid_t *srcnidp, __u32 *orderp)
 	}
 
 	rn_list = lnet_net2rnethash(dstnet);
-	list_for_each(e, rn_list) {
-		rnet = list_entry(e, struct lnet_remotenet, lrn_list);
-
+	list_for_each_entry(rnet, rn_list, lrn_list) {
 		if (rnet->lrn_net == dstnet) {
 			struct lnet_route *route;
 			struct lnet_route *shortest = NULL;
