@@ -1075,6 +1075,7 @@ void ptlrpc_set_destroy(struct ptlrpc_request_set *set)
 {
 	struct list_head *tmp;
 	struct list_head *next;
+	struct ptlrpc_request *req;
 	int expected_phase;
 	int n = 0;
 
@@ -1083,11 +1084,7 @@ void ptlrpc_set_destroy(struct ptlrpc_request_set *set)
 	/* Requests on the set should either all be completed, or all be new */
 	expected_phase = (atomic_read(&set->set_remaining) == 0) ?
 			 RQ_PHASE_COMPLETE : RQ_PHASE_NEW;
-	list_for_each(tmp, &set->set_requests) {
-		struct ptlrpc_request *req =
-			list_entry(tmp, struct ptlrpc_request,
-				   rq_set_chain);
-
+	list_for_each_entry(req, &set->set_requests, rq_set_chain) {
 		LASSERT(req->rq_phase == expected_phase);
 		n++;
 	}
@@ -2284,7 +2281,7 @@ int ptlrpc_expire_one_request(struct ptlrpc_request *req, int async_unlink)
  */
 void ptlrpc_expired_set(struct ptlrpc_request_set *set)
 {
-	struct list_head *tmp;
+	struct ptlrpc_request *req;
 	time64_t now = ktime_get_real_seconds();
 
 	ENTRY;
@@ -2293,11 +2290,7 @@ void ptlrpc_expired_set(struct ptlrpc_request_set *set)
 	/*
 	 * A timeout expired. See which reqs it applies to...
 	 */
-	list_for_each(tmp, &set->set_requests) {
-		struct ptlrpc_request *req =
-			list_entry(tmp, struct ptlrpc_request,
-				   rq_set_chain);
-
+	list_for_each_entry(req, &set->set_requests, rq_set_chain) {
 		/* don't expire request waiting for context */
 		if (req->rq_wait_ctx)
 			continue;
@@ -2327,15 +2320,12 @@ void ptlrpc_expired_set(struct ptlrpc_request_set *set)
  */
 static void ptlrpc_interrupted_set(struct ptlrpc_request_set *set)
 {
-	struct list_head *tmp;
+	struct ptlrpc_request *req;
 
 	LASSERT(set != NULL);
 	CDEBUG(D_RPCTRACE, "INTERRUPTED SET %p\n", set);
 
-	list_for_each(tmp, &set->set_requests) {
-		struct ptlrpc_request *req =
-			list_entry(tmp, struct ptlrpc_request, rq_set_chain);
-
+	list_for_each_entry(req, &set->set_requests, rq_set_chain) {
 		if (req->rq_intr)
 			continue;
 
@@ -2355,16 +2345,13 @@ static void ptlrpc_interrupted_set(struct ptlrpc_request_set *set)
  */
 time64_t ptlrpc_set_next_timeout(struct ptlrpc_request_set *set)
 {
-	struct list_head *tmp;
 	time64_t now = ktime_get_real_seconds();
 	int timeout = 0;
 	struct ptlrpc_request *req;
 	time64_t deadline;
 
 	ENTRY;
-	list_for_each(tmp, &set->set_requests) {
-		req = list_entry(tmp, struct ptlrpc_request, rq_set_chain);
-
+	list_for_each_entry(req, &set->set_requests, rq_set_chain) {
 		/* Request in-flight? */
 		if (!(((req->rq_phase == RQ_PHASE_RPC) && !req->rq_waiting) ||
 		      (req->rq_phase == RQ_PHASE_BULK) ||
@@ -2402,7 +2389,6 @@ time64_t ptlrpc_set_next_timeout(struct ptlrpc_request_set *set)
  */
 int ptlrpc_set_wait(const struct lu_env *env, struct ptlrpc_request_set *set)
 {
-	struct list_head *tmp;
 	struct ptlrpc_request *req;
 	time64_t timeout;
 	int rc;
@@ -2411,9 +2397,7 @@ int ptlrpc_set_wait(const struct lu_env *env, struct ptlrpc_request_set *set)
 	if (set->set_producer)
 		(void)ptlrpc_set_producer(set);
 	else
-		list_for_each(tmp, &set->set_requests) {
-			req = list_entry(tmp, struct ptlrpc_request,
-					 rq_set_chain);
+		list_for_each_entry(req, &set->set_requests, rq_set_chain) {
 			if (req->rq_phase == RQ_PHASE_NEW)
 				(void)ptlrpc_send_new_req(req);
 		}
@@ -2506,9 +2490,8 @@ int ptlrpc_set_wait(const struct lu_env *env, struct ptlrpc_request_set *set)
 		 * the error cases -eeb.
 		 */
 		if (rc == 0 && atomic_read(&set->set_remaining) == 0) {
-			list_for_each(tmp, &set->set_requests) {
-				req = list_entry(tmp, struct ptlrpc_request,
-						 rq_set_chain);
+			list_for_each_entry(req, &set->set_requests,
+					    rq_set_chain) {
 				spin_lock(&req->rq_lock);
 				req->rq_invalid_rqset = 1;
 				spin_unlock(&req->rq_lock);
@@ -2519,9 +2502,7 @@ int ptlrpc_set_wait(const struct lu_env *env, struct ptlrpc_request_set *set)
 	LASSERT(atomic_read(&set->set_remaining) == 0);
 
 	rc = set->set_rc; /* rq_status of already freed requests if any */
-	list_for_each(tmp, &set->set_requests) {
-		req = list_entry(tmp, struct ptlrpc_request, rq_set_chain);
-
+	list_for_each_entry(req, &set->set_requests, rq_set_chain) {
 		LASSERT(req->rq_phase == RQ_PHASE_COMPLETE);
 		if (req->rq_status != 0)
 			rc = req->rq_status;

@@ -962,9 +962,7 @@ void ptlrpc_server_drop_request(struct ptlrpc_request *req)
 			 * remove rqbd's reqs from svc's req history while
 			 * I've got the service lock
 			 */
-			list_for_each(tmp, &rqbd->rqbd_reqs) {
-				req = list_entry(tmp, struct ptlrpc_request,
-						 rq_list);
+			list_for_each_entry(req, &rqbd->rqbd_reqs, rq_list) {
 				/* Track the highest culled req seq */
 				if (req->rq_history_seq >
 				    svcpt->scp_hist_seq_culled) {

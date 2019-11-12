@@ -282,17 +282,13 @@ static void ptlrpc_pinger_main(struct work_struct *ws)
 	time64_t time_to_next_wake;
 	struct timeout_item *item;
 	struct obd_import *imp;
-	struct list_head *iter;
 
 	do {
 		mutex_lock(&pinger_mutex);
 		list_for_each_entry(item, &timeout_list, ti_chain)
 			item->ti_cb(item, item->ti_cb_data);
 
-		list_for_each(iter, &pinger_imports) {
-			imp = list_entry(iter, struct obd_import,
-					 imp_pinger_chain);
-
+		list_for_each_entry(imp, &pinger_imports, imp_pinger_chain) {
 			ptlrpc_pinger_process_import(imp, this_ping);
 			/* obd_timeout might have changed */
 			if (imp->imp_pingable && imp->imp_next_ping &&
