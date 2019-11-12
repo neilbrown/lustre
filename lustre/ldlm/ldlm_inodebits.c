@@ -159,7 +159,6 @@ static int
 ldlm_inodebits_compat_queue(struct list_head *queue, struct ldlm_lock *req,
 			    struct list_head *work_list)
 {
-	struct list_head *tmp;
 	struct ldlm_lock *lock;
 	__u64 req_bits = req->l_policy_data.l_inodebits.bits;
 	__u64 *try_bits = &req->l_policy_data.l_inodebits.try_bits;
@@ -175,10 +174,8 @@ ldlm_inodebits_compat_queue(struct list_head *queue, struct ldlm_lock *req,
 	if ((req_bits | *try_bits) == 0)
 		RETURN(0);
 
-	list_for_each(tmp, queue) {
-		struct list_head *mode_tail;
-
-		lock = list_entry(tmp, struct ldlm_lock, l_res_link);
+	list_for_each_entry(lock, queue, l_res_link) {
+		struct ldlm_lock *mode_tail;
 
 		/* We stop walking the queue if we hit ourselves so we don't
 		 * take conflicting locks enqueued after us into account,
@@ -188,8 +185,7 @@ ldlm_inodebits_compat_queue(struct list_head *queue, struct ldlm_lock *req,
 
 		/* last lock in mode group */
 		LASSERT(lock->l_sl_mode.prev != NULL);
-		mode_tail = &list_entry(lock->l_sl_mode.prev, struct ldlm_lock,
-					l_sl_mode)->l_res_link;
+		mode_tail = list_prev_entry(lock, l_sl_mode);
 
 		/* if request lock is not COS_INCOMPAT and COS is disabled,
 		 * they are compatible, IOW this request is from a local
@@ -197,24 +193,23 @@ ldlm_inodebits_compat_queue(struct list_head *queue, struct ldlm_lock *req,
 		if (lock->l_req_mode == LCK_COS && !ldlm_is_cos_incompat(req) &&
 		    !ldlm_is_cos_enabled(req)) {
 			/* jump to last lock in mode group */
-			tmp = mode_tail;
+			lock = mode_tail;
 			continue;
 		}
 
 		/* locks' mode are compatible, bits don't matter */
 		if (lockmode_compat(lock->l_req_mode, req->l_req_mode)) {
 			/* jump to last lock in mode group */
-			tmp = mode_tail;
+			lock = mode_tail;
 			continue;
 		}
 
 		for (;;) {
 			struct list_head *head;
+			struct ldlm_lock *policy_tail;
 
 			/* Advance loop cursor to last lock in policy group. */
-			tmp = &list_entry(lock->l_sl_policy.prev,
-					  struct ldlm_lock,
-					  l_sl_policy)->l_res_link;
+			policy_tail = list_prev_entry(lock, l_sl_policy);
 
 			/* New lock's try_bits are filtered out by ibits
 			 * of all locks in both granted and waiting queues.
@@ -261,11 +256,9 @@ ldlm_inodebits_compat_queue(struct list_head *queue, struct ldlm_lock *req,
 								req, work_list);
 			}
 not_conflicting:
-			if (tmp == mode_tail)
+			lock = list_next_entry(policy_tail, l_res_link);
+			if (policy_tail == mode_tail)
 				break;
-
-			tmp = tmp->next;
-			lock = list_entry(tmp, struct ldlm_lock, l_res_link);
 		} /* Loop over policy groups within one mode group. */
 	} /* Loop over mode groups within @queue. */
 
