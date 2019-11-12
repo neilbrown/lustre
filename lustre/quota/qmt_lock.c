@@ -427,7 +427,7 @@ static int qmt_alloc_lock_array(struct ldlm_resource *res,
 				struct qmt_gl_lock_array *array,
 				qmt_glimpse_cb_t cb, void *arg)
 {
-	struct list_head *pos;
+	struct ldlm_lock *lock;
 	unsigned long count = 0;
 	int fail_cnt = 0;
 	ENTRY;
@@ -436,11 +436,9 @@ static int qmt_alloc_lock_array(struct ldlm_resource *res,
 again:
 	lock_res(res);
 	/* scan list of granted locks */
-	list_for_each(pos, &res->lr_granted) {
-		struct ldlm_lock *lock;
+	list_for_each_entry(lock, &res->lr_granted, l_res_link) {
 		int rc;
 
-		lock = list_entry(pos, struct ldlm_lock, l_res_link);
 		LASSERT(lock->l_export);
 
 		if (cb != NULL) {

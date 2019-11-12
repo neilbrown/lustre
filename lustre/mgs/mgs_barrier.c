@@ -122,7 +122,7 @@ static int mgs_barrier_glimpse_lock(const struct lu_env *env,
 	struct ldlm_glimpse_work *work;
 	struct ldlm_glimpse_work *tmp;
 	LIST_HEAD(gl_list);
-	struct list_head *pos;
+	struct ldlm_lock *lock;
 	int i;
 	int rc;
 	ENTRY;
@@ -164,10 +164,7 @@ again:
 	work = list_first_entry(&gl_list, struct ldlm_glimpse_work, gl_list);
 
 	lock_res(res);
-	list_for_each(pos, &res->lr_granted) {
-		struct ldlm_lock *lock = list_entry(pos, struct ldlm_lock,
-						    l_res_link);
-
+	list_for_each_entry(lock, &res->lr_granted, l_res_link) {
 		work->gl_lock = LDLM_LOCK_GET(lock);
 		work->gl_flags = 0;
 		work->gl_desc = desc;
@@ -175,7 +172,9 @@ again:
 		work->gl_interpret_data = fsdb;
 
 		if (unlikely(work->gl_list.next == &gl_list)) {
-			if (likely(pos->next == &res->lr_granted))
+			if (likely(lock == list_last_entry(&res->lr_granted,
+							   struct ldlm_lock,
+							   l_res_link)))
 				break;
 
 			unlock_res(res);

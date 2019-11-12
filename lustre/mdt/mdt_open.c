@@ -518,11 +518,10 @@ static int mdt_finish_open(struct mdt_thread_info *info,
 	struct mdt_export_data	*med = &req->rq_export->exp_mdt_data;
 	struct md_attr		*ma  = &info->mti_attr;
 	struct lu_attr		*la  = &ma->ma_attr;
-	struct mdt_file_data	*mfd;
+	struct mdt_file_data	*mfd, *tmfd;
 	struct mdt_body		*repbody;
 	int			 rc = 0;
 	int			 isreg, isdir, islnk;
-	struct list_head	*t;
 	ENTRY;
 
         LASSERT(ma->ma_valid & MA_INODE);
@@ -616,12 +615,11 @@ static int mdt_finish_open(struct mdt_thread_info *info,
 	mfd = NULL;
 	if (lustre_msg_get_flags(req->rq_reqmsg) & MSG_RESENT) {
 		spin_lock(&med->med_open_lock);
-		list_for_each(t, &med->med_open_head) {
-			mfd = list_entry(t, struct mdt_file_data, mfd_list);
-			if (mfd->mfd_xid == req->rq_xid)
+		list_for_each_entry(tmfd, &med->med_open_head, mfd_list)
+			if (tmfd->mfd_xid == req->rq_xid) {
+				mfd = tmfd;
 				break;
-			mfd = NULL;
-		}
+			}
 		spin_unlock(&med->med_open_lock);
 
 		if (mfd != NULL) {

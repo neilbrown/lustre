@@ -65,13 +65,10 @@ static LIST_HEAD(server_mount_info_list);
 
 static struct lustre_mount_info *server_find_mount(const char *name)
 {
-	struct list_head *tmp;
 	struct lustre_mount_info *lmi;
 	ENTRY;
 
-	list_for_each(tmp, &server_mount_info_list) {
-		lmi = list_entry(tmp, struct lustre_mount_info,
-				 lmi_list_chain);
+	list_for_each_entry(lmi, &server_mount_info_list, lmi_list_chain) {
 		if (strcmp(name, lmi->lmi_name) == 0)
 			RETURN(lmi);
 	}

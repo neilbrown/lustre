@@ -416,20 +416,16 @@ int qmt_pool_prepare(const struct lu_env *env, struct qmt_device *qmt,
 	struct qmt_pool_info	*pool;
 	struct dt_device	*dev = NULL;
 	dt_obj_version_t	 version;
-	struct list_head	*pos;
 	int			 rc = 0, qtype;
 	ENTRY;
 
 	/* iterate over each pool in the list and allocate a quota site for each
 	 * one. This involves creating a global index file on disk */
-	list_for_each(pos, &qmt->qmt_pool_list) {
+	list_for_each_entry(pool, &qmt->qmt_pool_list, qpi_linkage) {
 		struct dt_object	*obj;
 		struct lquota_entry	*lqe;
 		char			*pool_name;
 		int			 pool_type;
-
-		pool = list_entry(pos, struct qmt_pool_info,
-				  qpi_linkage);
 
 		pool_name = pool->qpi_name;
 		pool_type = pool->qpi_rtype;

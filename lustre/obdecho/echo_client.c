@@ -1276,15 +1276,13 @@ static int cl_echo_cancel0(struct lu_env *env, struct echo_device *ed,
 			   __u64 cookie)
 {
 	struct echo_client_obd *ec = ed->ed_ec;
-	struct echo_lock *ecl = NULL;
-	struct list_head *el;
+	struct echo_lock *ecl;
 	int found = 0, still_used = 0;
 
 	ENTRY;
 	LASSERT(ec != NULL);
 	spin_lock(&ec->ec_lock);
-	list_for_each(el, &ec->ec_locks) {
-		ecl = list_entry(el, struct echo_lock, el_chain);
+	list_for_each_entry(ecl, &ec->ec_locks, el_chain) {
 		CDEBUG(D_INFO, "ecl: %p, cookie: %#llx\n", ecl, ecl->el_cookie);
 		found = (ecl->el_cookie == cookie);
 		if (found) {

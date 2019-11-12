@@ -121,15 +121,12 @@ static void mdt_steal_ack_locks(struct ptlrpc_request *req)
 {
 	struct ptlrpc_service_part *svcpt;
 	struct obd_export *exp = req->rq_export;
-	struct list_head *tmp;
 	struct ptlrpc_reply_state *rs;
 	int i;
 
 	/* CAVEAT EMPTOR: spinlock order */
 	spin_lock(&exp->exp_lock);
-	list_for_each(tmp, &exp->exp_outstanding_replies) {
-		rs = list_entry(tmp, struct ptlrpc_reply_state,
-				    rs_exp_list);
+	list_for_each_entry(rs, &exp->exp_outstanding_replies, rs_exp_list) {
 
 		if (rs->rs_xid != req->rq_xid)
 			continue;

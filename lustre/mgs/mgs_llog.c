@@ -363,10 +363,8 @@ static inline struct fs_db *
 mgs_find_fsdb_noref(struct mgs_device *mgs, const char *fsname)
 {
 	struct fs_db *fsdb;
-	struct list_head *tmp;
 
-	list_for_each(tmp, &mgs->mgs_fs_db_list) {
-		fsdb = list_entry(tmp, struct fs_db, fsdb_list);
+	list_for_each_entry(fsdb, &mgs->mgs_fs_db_list, fsdb_list) {
 		if (strcmp(fsdb->fsdb_name, fsname) == 0)
 			return fsdb;
 	}
@@ -5243,7 +5241,6 @@ static int mgs_set_param2(const struct lu_env *env, struct mgs_device *mgs,
 
 	len = strcspn(param, ".=");
 	if (len && param[len] != '=') {
-		struct list_head *tmp;
 		char *ptr;
 
 		param += len + 1;
@@ -5264,8 +5261,7 @@ static int mgs_set_param2(const struct lu_env *env, struct mgs_device *mgs,
 			GOTO(out, rc = -ENODEV);
 		}
 
-		list_for_each(tmp, &mgs->mgs_fs_db_list) {
-			fsdb = list_entry(tmp, struct fs_db, fsdb_list);
+		list_for_each_entry(fsdb, &mgs->mgs_fs_db_list, fsdb_list) {
 			if (fsdb->fsdb_has_lproc_entry &&
 			    strcmp(fsdb->fsdb_name, "params") != 0 &&
 			    strstr(param, fsdb->fsdb_name)) {
