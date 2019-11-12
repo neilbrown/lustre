@@ -3379,7 +3379,6 @@ kgnilnd_check_fma_rcv_cq(kgn_device_t *dev)
 	__u64               event_data;
 	long                num_processed = 0;
 	struct list_head   *conns;
-	struct list_head   *tmp;
 	int                 rc;
 
 	for (;;) {
@@ -3465,10 +3464,7 @@ kgnilnd_check_fma_rcv_cq(kgn_device_t *dev)
 			read_lock(&kgnilnd_data.kgn_peer_conn_lock);
 			conns = &kgnilnd_data.kgn_conns[rc];
 
-			list_for_each(tmp, conns) {
-				conn = list_entry(tmp, kgn_conn_t,
-						  gnc_hashlist);
-
+			list_for_each_entry(conn, conns, gnc_hashlist) {
 				if (conn->gnc_device == dev) {
 					kgnilnd_schedule_conn(conn);
 					conn->gnc_last_rx_cq = jiffies;

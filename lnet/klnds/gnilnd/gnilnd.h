@@ -1583,12 +1583,9 @@ static inline kgn_conn_t *
 kgnilnd_cqid2conn_locked(__u32 cqid)
 {
 	struct list_head *conns = kgnilnd_cqid2connlist(cqid);
-	struct list_head *tmp;
 	kgn_conn_t       *conn;
 
-	list_for_each(tmp, conns) {
-		conn = list_entry(tmp, kgn_conn_t, gnc_hashlist);
-
+	list_for_each_entry(conn, conns, gnc_hashlist) {
 		if (conn->gnc_cqid == cqid)
 			return conn;
 	}

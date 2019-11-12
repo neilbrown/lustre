@@ -381,12 +381,10 @@ kiblnd_find_peer_locked(struct lnet_ni *ni, lnet_nid_t nid)
 	/* the caller is responsible for accounting the additional reference
 	 * that this creates */
 	struct list_head	*peer_list = kiblnd_nid2peerlist(nid);
-	struct list_head	*tmp;
-	struct kib_peer_ni		*peer_ni;
+	struct kib_peer_ni	*peer_ni;
 
-	list_for_each(tmp, peer_list) {
+	list_for_each_entry(peer_ni, peer_list, ibp_list) {
 
-		peer_ni = list_entry(tmp, struct kib_peer_ni, ibp_list);
 		LASSERT(!kiblnd_peer_idle(peer_ni));
 
 		/*
@@ -423,18 +421,17 @@ static int
 kiblnd_get_peer_info(struct lnet_ni *ni, int index,
 		     lnet_nid_t *nidp, int *count)
 {
-	struct kib_peer_ni		*peer_ni;
-	struct list_head	*ptmp;
+	struct kib_peer_ni	*peer_ni;
 	int			 i;
 	unsigned long		 flags;
 
 	read_lock_irqsave(&kiblnd_data.kib_global_lock, flags);
 
-        for (i = 0; i < kiblnd_data.kib_peer_hash_size; i++) {
+	for (i = 0; i < kiblnd_data.kib_peer_hash_size; i++) {
 
-		list_for_each(ptmp, &kiblnd_data.kib_peers[i]) {
+		list_for_each_entry(peer_ni, &kiblnd_data.kib_peers[i],
+				    ibp_list) {
 
-			peer_ni = list_entry(ptmp, struct kib_peer_ni, ibp_list);
 			LASSERT(!kiblnd_peer_idle(peer_ni));
 
 			if (peer_ni->ibp_ni != ni)
@@ -533,28 +530,26 @@ static struct kib_conn *
 kiblnd_get_conn_by_idx(struct lnet_ni *ni, int index)
 {
 	struct kib_peer_ni		*peer_ni;
-	struct list_head	*ptmp;
 	struct kib_conn	*conn;
-	struct list_head	*ctmp;
 	int			i;
 	unsigned long		flags;
 
 	read_lock_irqsave(&kiblnd_data.kib_global_lock, flags);
 
 	for (i = 0; i < kiblnd_data.kib_peer_hash_size; i++) {
-		list_for_each(ptmp, &kiblnd_data.kib_peers[i]) {
+		list_for_each_entry(peer_ni, &kiblnd_data.kib_peers[i],
+				    ibp_list) {
 
-			peer_ni = list_entry(ptmp, struct kib_peer_ni, ibp_list);
 			LASSERT(!kiblnd_peer_idle(peer_ni));
 
 			if (peer_ni->ibp_ni != ni)
 				continue;
 
-			list_for_each(ctmp, &peer_ni->ibp_conns) {
+			list_for_each_entry(conn, &peer_ni->ibp_conns,
+					    ibc_list) {
 				if (index-- > 0)
 					continue;
 
-				conn = list_entry(ctmp, struct kib_conn, ibc_list);
 				kiblnd_conn_addref(conn);
 				read_unlock_irqrestore(&kiblnd_data.kib_global_lock,
 						       flags);
@@ -590,7 +585,8 @@ kiblnd_debug_tx(struct kib_tx *tx)
 void
 kiblnd_debug_conn(struct kib_conn *conn)
 {
-	struct list_head	*tmp;
+	struct kib_tx		*tx;
+	struct kib_rx		*rx;
 	int			i;
 
 	spin_lock(&conn->ibc_lock);
@@ -605,28 +601,28 @@ kiblnd_debug_conn(struct kib_conn *conn)
 	CDEBUG(D_CONSOLE, "   comms_err %d\n", conn->ibc_comms_error);
 
 	CDEBUG(D_CONSOLE, "   early_rxs:\n");
-	list_for_each(tmp, &conn->ibc_early_rxs)
-		kiblnd_debug_rx(list_entry(tmp, struct kib_rx, rx_list));
+	list_for_each_entry(rx, &conn->ibc_early_rxs, rx_list)
+		kiblnd_debug_rx(rx);
 
 	CDEBUG(D_CONSOLE, "   tx_noops:\n");
-	list_for_each(tmp, &conn->ibc_tx_noops)
-		kiblnd_debug_tx(list_entry(tmp, struct kib_tx, tx_list));
+	list_for_each_entry(tx, &conn->ibc_tx_noops, tx_list)
+		kiblnd_debug_tx(tx);
 
 	CDEBUG(D_CONSOLE, "   tx_queue_nocred:\n");
-	list_for_each(tmp, &conn->ibc_tx_queue_nocred)
-		kiblnd_debug_tx(list_entry(tmp, struct kib_tx, tx_list));
+	list_for_each_entry(tx, &conn->ibc_tx_queue_nocred, tx_list)
+		kiblnd_debug_tx(tx);
 
 	CDEBUG(D_CONSOLE, "   tx_queue_rsrvd:\n");
-	list_for_each(tmp, &conn->ibc_tx_queue_rsrvd)
-		kiblnd_debug_tx(list_entry(tmp, struct kib_tx, tx_list));
+	list_for_each_entry(tx, &conn->ibc_tx_queue_rsrvd, tx_list)
+		kiblnd_debug_tx(tx);
 
 	CDEBUG(D_CONSOLE, "   tx_queue:\n");
-	list_for_each(tmp, &conn->ibc_tx_queue)
-		kiblnd_debug_tx(list_entry(tmp, struct kib_tx, tx_list));
+	list_for_each_entry(tx, &conn->ibc_tx_queue, tx_list)
+		kiblnd_debug_tx(tx);
 
 	CDEBUG(D_CONSOLE, "   active_txs:\n");
-	list_for_each(tmp, &conn->ibc_active_txs)
-		kiblnd_debug_tx(list_entry(tmp, struct kib_tx, tx_list));
+	list_for_each_entry(tx, &conn->ibc_active_txs, tx_list)
+		kiblnd_debug_tx(tx);
 
 	CDEBUG(D_CONSOLE, "   rxs:\n");
 	for (i = 0; i < IBLND_RX_MSGS(conn); i++)

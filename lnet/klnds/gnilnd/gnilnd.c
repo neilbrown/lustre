@@ -161,14 +161,12 @@ int
 kgnilnd_conn_isdup_locked(kgn_peer_t *peer, kgn_conn_t *newconn)
 {
 	kgn_conn_t       *conn;
-	struct list_head *tmp;
 	int               loopback;
 	ENTRY;
 
 	loopback = peer->gnp_nid == peer->gnp_net->gnn_ni->ni_nid;
 
-	list_for_each(tmp, &peer->gnp_conns) {
-		conn = list_entry(tmp, kgn_conn_t, gnc_list);
+	list_for_each_entry(conn, &peer->gnp_conns, gnc_list) {
 		CDEBUG(D_NET, "checking conn 0x%p for peer %s"
 			" lo %d new %llu existing %llu"
 			" new peer %llu existing peer %llu"
@@ -1323,7 +1321,6 @@ kgnilnd_get_peer_info(int index,
 		      lnet_nid_t *id, __u32 *nic_addr,
 		      int *refcount, int *connecting)
 {
-	struct list_head  *ptmp;
 	kgn_peer_t        *peer;
 	int               i;
 	int               rc = -ENOENT;
@@ -1332,9 +1329,8 @@ kgnilnd_get_peer_info(int index,
 
 	for (i = 0; i < *kgnilnd_tunables.kgn_peer_hash_size; i++) {
 
-		list_for_each(ptmp, &kgnilnd_data.kgn_peers[i]) {
-			peer = list_entry(ptmp, kgn_peer_t, gnp_list);
-
+		list_for_each_entry(peer, &kgnilnd_data.kgn_peers[i],
+				    gnp_list) {
 			if (index-- > 0)
 				continue;
 
@@ -1614,20 +1610,15 @@ kgn_conn_t *
 kgnilnd_get_conn_by_idx(int index)
 {
 	kgn_peer_t        *peer;
-	struct list_head  *ptmp;
 	kgn_conn_t        *conn;
-	struct list_head  *ctmp;
 	int                i;
-
 
 	for (i = 0; i < *kgnilnd_tunables.kgn_peer_hash_size; i++) {
 		read_lock(&kgnilnd_data.kgn_peer_conn_lock);
-		list_for_each(ptmp, &kgnilnd_data.kgn_peers[i]) {
+		list_for_each_entry(peer, &kgnilnd_data.kgn_peers[i],
+				    gnp_list) {
 
-			peer = list_entry(ptmp, kgn_peer_t, gnp_list);
-
-			list_for_each(ctmp, &peer->gnp_conns) {
-				conn = list_entry(ctmp, kgn_conn_t, gnc_list);
+			list_for_each_entry(conn, &peer->gnp_conns, gnc_list) {
 
 				if (conn->gnc_state != GNILND_CONN_ESTABLISHED)
 					continue;
