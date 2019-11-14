@@ -1745,8 +1745,7 @@ int lod_parse_dir_striping(const struct lu_env *env, struct lod_object *lo,
 		RETURN(0);
 
 	LASSERT(lo->ldo_stripe == NULL);
-	OBD_ALLOC(stripe, sizeof(stripe[0]) *
-		  (le32_to_cpu(lmv1->lmv_stripe_count)));
+	OBD_ALLOC_PTR_ARRAY(stripe, le32_to_cpu(lmv1->lmv_stripe_count));
 	if (stripe == NULL)
 		RETURN(-ENOMEM);
 
@@ -2133,7 +2132,7 @@ static int lod_prep_md_striped_create(const struct lu_env *env,
 
 	stripe_count = lo->ldo_dir_stripe_count;
 
-	OBD_ALLOC(stripes, sizeof(stripes[0]) * stripe_count);
+	OBD_ALLOC_PTR_ARRAY(stripes, stripe_count);
 	if (!stripes)
 		RETURN(-ENOMEM);
 
@@ -2156,7 +2155,7 @@ static int lod_prep_md_striped_create(const struct lu_env *env,
 		int *idx_array;
 		bool is_specific = false;
 
-		OBD_ALLOC(idx_array, sizeof(idx_array[0]) * stripe_count);
+		OBD_ALLOC_PTR_ARRAY(idx_array, stripe_count);
 		if (!idx_array)
 			GOTO(out, rc = -ENOMEM);
 
@@ -2172,7 +2171,7 @@ static int lod_prep_md_striped_create(const struct lu_env *env,
 			lu_site2seq(lod2lu_dev(lod)->ld_site)->ss_node_id;
 		rc = lod_mdt_alloc_specific(env, lo, stripes, idx_array,
 					    is_specific);
-		OBD_FREE(idx_array, sizeof(idx_array[0]) * stripe_count);
+		OBD_FREE_PTR_ARRAY(idx_array, stripe_count);
 	}
 
 	if (rc < 0)
@@ -2199,7 +2198,7 @@ out:
 		dt_object_put(env, stripes[0]);
 	for (i = 1; i < stripe_count; i++)
 		LASSERT(!stripes[i]);
-	OBD_FREE(stripes, sizeof(stripes[0]) * stripe_count);
+	OBD_FREE_PTR_ARRAY(stripes, stripe_count);
 
 	return rc;
 }
@@ -2335,8 +2334,7 @@ static int lod_dir_declare_layout_add(const struct lu_env *env,
 
 	dof->dof_type = DFT_DIR;
 
-	OBD_ALLOC(stripe,
-		  sizeof(*stripe) * (lo->ldo_dir_stripe_count + stripe_count));
+	OBD_ALLOC_PTR_ARRAY(stripe, (lo->ldo_dir_stripe_count + stripe_count));
 	if (stripe == NULL)
 		RETURN(-ENOMEM);
 
@@ -2424,8 +2422,8 @@ static int lod_dir_declare_layout_add(const struct lu_env *env,
 	}
 
 	if (lo->ldo_stripe)
-		OBD_FREE(lo->ldo_stripe,
-			 sizeof(*stripe) * lo->ldo_dir_stripes_allocated);
+		OBD_FREE_PTR_ARRAY(lo->ldo_stripe,
+				   lo->ldo_dir_stripes_allocated);
 	lo->ldo_stripe = stripe;
 	lo->ldo_dir_migrate_offset = lo->ldo_dir_stripe_count;
 	lo->ldo_dir_migrate_hash = le32_to_cpu(lmv->lmv_hash_type);
@@ -2439,8 +2437,8 @@ out:
 	while (i < lo->ldo_dir_stripe_count + stripe_count && stripe[i])
 		dt_object_put(env, stripe[i++]);
 
-	OBD_FREE(stripe,
-		 sizeof(*stripe) * (stripe_count + lo->ldo_dir_stripe_count));
+	OBD_FREE_PTR_ARRAY(stripe,
+			   stripe_count + lo->ldo_dir_stripe_count);
 	RETURN(rc);
 }
 
@@ -2858,7 +2856,7 @@ static int lod_declare_layout_add(const struct lu_env *env,
 		RETURN(-EINVAL);
 
 	array_cnt = lo->ldo_comp_cnt + comp_v1->lcm_entry_count;
-	OBD_ALLOC(comp_array, sizeof(*comp_array) * array_cnt);
+	OBD_ALLOC_PTR_ARRAY(comp_array, array_cnt);
 	if (comp_array == NULL)
 		RETURN(-ENOMEM);
 
@@ -2912,7 +2910,7 @@ static int lod_declare_layout_add(const struct lu_env *env,
 		GOTO(error, rc);
 	}
 
-	OBD_FREE(old_array, sizeof(*lod_comp) * old_array_cnt);
+	OBD_FREE_PTR_ARRAY(old_array, old_array_cnt);
 
 	LASSERT(lo->ldo_mirror_count == 1);
 	lo->ldo_mirrors[0].lme_end = array_cnt - 1;
@@ -2928,7 +2926,7 @@ error:
 			lod_comp->llc_pool = NULL;
 		}
 	}
-	OBD_FREE(comp_array, sizeof(*comp_array) * array_cnt);
+	OBD_FREE_PTR_ARRAY(comp_array, array_cnt);
 	RETURN(rc);
 }
 
@@ -4316,7 +4314,7 @@ static int lod_layout_repeat_comp(const struct lu_env *env,
 
 	CDEBUG(D_LAYOUT, "repeating component %d\n", index);
 
-	OBD_ALLOC(comp_array, sizeof(*comp_array) * new_cnt);
+	OBD_ALLOC_PTR_ARRAY(comp_array, new_cnt);
 	if (comp_array == NULL)
 		GOTO(out, rc = -ENOMEM);
 
@@ -4363,8 +4361,7 @@ static int lod_layout_repeat_comp(const struct lu_env *env,
 		new_comp->llc_ostlist.op_array = op_array;
 	}
 
-	OBD_FREE(lo->ldo_comp_entries,
-		 sizeof(*comp_array) * lo->ldo_comp_cnt);
+	OBD_FREE_PTR_ARRAY(lo->ldo_comp_entries, lo->ldo_comp_cnt);
 	lo->ldo_comp_entries = comp_array;
 	lo->ldo_comp_cnt = new_cnt;
 
@@ -4378,7 +4375,7 @@ static int lod_layout_repeat_comp(const struct lu_env *env,
 	EXIT;
 out:
 	if (rc)
-		OBD_FREE(comp_array, sizeof(*comp_array) * new_cnt);
+		OBD_FREE_PTR_ARRAY(comp_array, new_cnt);
 
 	return rc;
 }
@@ -4395,12 +4392,11 @@ static int lod_layout_data_init(struct lod_thread_info *info, __u32 comp_cnt)
 		RETURN(0);
 
 	if (info->lti_comp_size > 0) {
-		OBD_FREE(info->lti_comp_idx,
-			 info->lti_comp_size * sizeof(__u32));
+		OBD_FREE_PTR_ARRAY(info->lti_comp_idx, info->lti_comp_size);
 		info->lti_comp_size = 0;
 	}
 
-	OBD_ALLOC(info->lti_comp_idx, comp_cnt * sizeof(__u32));
+	OBD_ALLOC_PTR_ARRAY(info->lti_comp_idx, comp_cnt);
 	if (!info->lti_comp_idx)
 		RETURN(-ENOMEM);
 
@@ -4487,11 +4483,11 @@ static int lod_layout_del_prep_layout(const struct lu_env *env,
 			lu_object_put(env, &obj->do_lu);
 			lod_comp->llc_stripe[j] = NULL;
 		}
-		OBD_FREE(lod_comp->llc_stripe, sizeof(*lod_comp->llc_stripe) *
-					lod_comp->llc_stripes_allocated);
+		OBD_FREE_PTR_ARRAY(lod_comp->llc_stripe,
+				   lod_comp->llc_stripes_allocated);
 		lod_comp->llc_stripe = NULL;
-		OBD_FREE(lod_comp->llc_ost_indices,
-			 sizeof(__u32) * lod_comp->llc_stripes_allocated);
+		OBD_FREE_PTR_ARRAY(lod_comp->llc_ost_indices,
+				   lod_comp->llc_stripes_allocated);
 		lod_comp->llc_ost_indices = NULL;
 		lod_comp->llc_stripes_allocated = 0;
 	}
@@ -4504,7 +4500,7 @@ static int lod_layout_del_prep_layout(const struct lu_env *env,
 	if (info->lti_count > 0) {
 		struct lod_layout_component *comp_array;
 
-		OBD_ALLOC(comp_array, sizeof(*comp_array) * info->lti_count);
+		OBD_ALLOC_PTR_ARRAY(comp_array, info->lti_count);
 		if (comp_array == NULL)
 			GOTO(out, rc = -ENOMEM);
 
@@ -4514,8 +4510,7 @@ static int lod_layout_del_prep_layout(const struct lu_env *env,
 			       sizeof(*comp_array));
 		}
 
-		OBD_FREE(lo->ldo_comp_entries,
-			 sizeof(*comp_array) * lo->ldo_comp_cnt);
+		OBD_FREE_PTR_ARRAY(lo->ldo_comp_entries, lo->ldo_comp_cnt);
 		lo->ldo_comp_entries = comp_array;
 		lo->ldo_comp_cnt = info->lti_count;
 	} else {
@@ -8122,13 +8117,11 @@ void lod_striping_free_nolock(const struct lu_env *env, struct lod_object *lo)
 					lu_object_put(env,
 					       &lod_comp->llc_stripe[j]->do_lu);
 			}
-			OBD_FREE(lod_comp->llc_stripe,
-				 sizeof(struct dt_object *) *
-				 lod_comp->llc_stripes_allocated);
+			OBD_FREE_PTR_ARRAY(lod_comp->llc_stripe,
+					   lod_comp->llc_stripes_allocated);
 			lod_comp->llc_stripe = NULL;
-			OBD_FREE(lod_comp->llc_ost_indices,
-				 sizeof(__u32) *
-				 lod_comp->llc_stripes_allocated);
+			OBD_FREE_PTR_ARRAY(lod_comp->llc_ost_indices,
+					   lod_comp->llc_stripes_allocated);
 			lod_comp->llc_ost_indices = NULL;
 			lod_comp->llc_stripes_allocated = 0;
 		}

@@ -1056,7 +1056,7 @@ static void osp_sync_process_committed(const struct lu_env *env,
 	list_for_each(le, &list)
 		count++;
 	if (count > 2)
-		OBD_ALLOC_WAIT(arr, sizeof(int) * count);
+		OBD_ALLOC_PTR_ARRAY_WAIT(arr, count);
 	else
 		arr = NULL;
 	i = 0;
@@ -1109,7 +1109,7 @@ static void osp_sync_process_committed(const struct lu_env *env,
 			       PFID(&lgid.lgl_oi.oi_fid), i);
 	}
 	if (arr)
-		OBD_FREE(arr, sizeof(int) * count);
+		OBD_FREE_PTR_ARRAY(arr, count);
 
 	llog_ctxt_put(ctxt);
 

@@ -1034,7 +1034,7 @@ static int lmd_make_exclusion(struct lustre_mount_data *lmd, const char *ptr)
 	devmax = strlen(ptr) / 8 + 1;
 
 	/* temp storage until we figure out how many we have */
-	OBD_ALLOC(exclude_list, sizeof(index) * devmax);
+	OBD_ALLOC_PTR_ARRAY(exclude_list, devmax);
 	if (!exclude_list)
 		RETURN(-ENOMEM);
 
@@ -1065,8 +1065,8 @@ static int lmd_make_exclusion(struct lustre_mount_data *lmd, const char *ptr)
 
 	if (lmd->lmd_exclude_count) {
 		/* permanent, freed in lustre_free_lsi */
-		OBD_ALLOC(lmd->lmd_exclude, sizeof(index) *
-			  lmd->lmd_exclude_count);
+		OBD_ALLOC_PTR_ARRAY(lmd->lmd_exclude,
+				    lmd->lmd_exclude_count);
 		if (lmd->lmd_exclude) {
 			memcpy(lmd->lmd_exclude, exclude_list,
 			       sizeof(index) * lmd->lmd_exclude_count);
@@ -1075,7 +1075,7 @@ static int lmd_make_exclusion(struct lustre_mount_data *lmd, const char *ptr)
 			lmd->lmd_exclude_count = 0;
 		}
 	}
-	OBD_FREE(exclude_list, sizeof(index) * devmax);
+	OBD_FREE_PTR_ARRAY(exclude_list, devmax);
 	RETURN(rc);
 }
 

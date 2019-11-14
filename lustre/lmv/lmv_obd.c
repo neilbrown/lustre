@@ -2954,10 +2954,10 @@ static int lmv_rmfid(struct obd_export *exp, struct fid_array *fa,
 	}
 
 	/* split FIDs by targets */
-	OBD_ALLOC(fas, sizeof(fas) * tgt_count);
+	OBD_ALLOC_PTR_ARRAY(fas, tgt_count);
 	if (fas == NULL)
 		GOTO(out, rc = -ENOMEM);
-	OBD_ALLOC(rcs, sizeof(int *) * tgt_count);
+	OBD_ALLOC_PTR_ARRAY(rcs, tgt_count);
 	if (rcs == NULL)
 		GOTO(out_fas, rc = -ENOMEM);
 
@@ -2977,7 +2977,7 @@ static int lmv_rmfid(struct obd_export *exp, struct fid_array *fa,
 		if (!fas[idx])
 			GOTO(out, rc = -ENOMEM);
 		if (!rcs[idx])
-			OBD_ALLOC(rcs[idx], sizeof(int) * fa->fa_nr);
+			OBD_ALLOC_PTR_ARRAY(rcs[idx], fa->fa_nr);
 		if (!rcs[idx])
 			GOTO(out, rc = -ENOMEM);
 
@@ -3016,13 +3016,13 @@ out:
 			OBD_FREE(fas[i], offsetof(struct fid_array,
 						fa_fids[fa->fa_nr]));
 		if (rcs && rcs[i])
-			OBD_FREE(rcs[i], sizeof(int) * fa->fa_nr);
+			OBD_FREE_PTR_ARRAY(rcs[i], fa->fa_nr);
 	}
 	if (rcs)
-		OBD_FREE(rcs, sizeof(int *) * tgt_count);
+		OBD_FREE_PTR_ARRAY(rcs, tgt_count);
 out_fas:
 	if (fas)
-		OBD_FREE(fas, sizeof(fas) * tgt_count);
+		OBD_FREE_PTR_ARRAY(fas, tgt_count);
 
 	RETURN(rc);
 }
