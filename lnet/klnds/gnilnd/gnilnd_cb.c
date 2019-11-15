@@ -3204,10 +3204,9 @@ kgnilnd_check_fma_send_cq(kgn_device_t *dev)
 	__u64                  event_data;
 	kgn_tx_ev_id_t         ev_id;
 	kgn_tx_t              *tx = NULL;
-	kgn_conn_t            *conn = NULL;
+	kgn_conn_t            *conn = NULL, *cnxt;
 	int                    queued_fma, saw_reply, rc;
 	long                   num_processed = 0;
-	struct list_head      *ctmp, *ctmpN;
 
 	for (;;) {
 		/* make sure we don't keep looping if we need to reset */
@@ -3232,19 +3231,20 @@ kgnilnd_check_fma_send_cq(kgn_device_t *dev)
 			       num_processed);
 
 			if (num_processed > 0) {
+				int any = 0;
 				spin_lock(&dev->gnd_lock);
-				if (!list_empty(&dev->gnd_delay_conns)) {
-					list_for_each_safe(ctmp, ctmpN, &dev->gnd_delay_conns) {
-						conn = list_entry(ctmp, kgn_conn_t, gnc_delaylist);
-						list_del_init(&conn->gnc_delaylist);
-						CDEBUG(D_NET, "Moving Conn %p from delay queue to ready_queue\n", conn);
-						kgnilnd_schedule_conn_nolock(conn);
-					}
-					spin_unlock(&dev->gnd_lock);
-					kgnilnd_schedule_device(dev);
-				} else {
-					spin_unlock(&dev->gnd_lock);
+				while ((conn = list_first_entry_or_null(
+						&dev->gnd_delay_conns,
+						kgn_conn_t,
+						gnc_delaylist)) != NULL) {
+					list_del_init(&conn->gnc_delaylist);
+					CDEBUG(D_NET, "Moving Conn %p from delay queue to ready_queue\n", conn);
+					kgnilnd_schedule_conn_nolock(conn);
+					any = 1;
 				}
+				spin_unlock(&dev->gnd_lock);
+				if (any)
+					kgnilnd_schedule_device(dev);
 			}
 			return num_processed;
 		}

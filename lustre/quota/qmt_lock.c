@@ -496,7 +496,7 @@ static int qmt_glimpse_lock(const struct lu_env *env, struct qmt_device *qmt,
 			    struct ldlm_resource *res, union ldlm_gl_desc *desc,
 			    qmt_glimpse_cb_t cb, void *arg)
 {
-	struct list_head *tmp, *pos;
+	struct ldlm_glimpse_work *work;
 	LIST_HEAD(gl_list);
 	struct qmt_gl_lock_array locks;
 	unsigned long i;
@@ -540,11 +540,9 @@ static int qmt_glimpse_lock(const struct lu_env *env, struct qmt_device *qmt,
 	/* issue glimpse callbacks to all connected slaves */
 	rc = ldlm_glimpse_locks(res, &gl_list);
 
-	list_for_each_safe(pos, tmp, &gl_list) {
-		struct ldlm_glimpse_work *work;
-
-		work = list_entry(pos, struct ldlm_glimpse_work, gl_list);
-
+	while ((work = list_first_entry_or_null(&gl_list,
+						struct ldlm_glimpse_work,
+						gl_list)) != NULL) {
 		list_del(&work->gl_list);
 		CERROR("%s: failed to notify %s of new quota settings\n",
 		       qmt->qmt_svname,

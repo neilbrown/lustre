@@ -906,8 +906,6 @@ void ptlrpc_server_drop_request(struct ptlrpc_request *req)
 	struct ptlrpc_service_part	  *svcpt = rqbd->rqbd_svcpt;
 	struct ptlrpc_service		  *svc = svcpt->scp_service;
 	int				   refcount;
-	struct list_head			  *tmp;
-	struct list_head			  *nxt;
 
 	if (!atomic_dec_and_test(&req->rq_refcount))
 		return;
@@ -974,10 +972,10 @@ void ptlrpc_server_drop_request(struct ptlrpc_request *req)
 
 			spin_unlock(&svcpt->scp_lock);
 
-			list_for_each_safe(tmp, nxt, &rqbd->rqbd_reqs) {
-				req = list_first_entry(&rqbd->rqbd_reqs,
-						       struct ptlrpc_request,
-						       rq_list);
+			while ((req = list_first_entry_or_null(
+					&rqbd->rqbd_reqs,
+					struct ptlrpc_request,
+					rq_list)) != NULL) {
 				list_del(&req->rq_list);
 				ptlrpc_server_free_request(req);
 			}

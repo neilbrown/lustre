@@ -602,19 +602,18 @@ ksocknal_del_peer_locked(struct ksock_peer_ni *peer_ni, __u32 ip)
 		/* remove everything else if there are no explicit entries
 		 * left */
 
-		list_for_each_safe(tmp, nxt, &peer_ni->ksnp_routes) {
-			route = list_entry(tmp, struct ksock_route, ksnr_list);
-
+		while ((route = list_first_entry_or_null(&peer_ni->ksnp_routes,
+							 struct ksock_route,
+							 ksnr_list)) != NULL) {
 			/* we should only be removing auto-entries */
 			LASSERT(route->ksnr_share_count == 0);
 			ksocknal_del_route_locked(route);
 		}
 
-		list_for_each_safe(tmp, nxt, &peer_ni->ksnp_conns) {
-			conn = list_entry(tmp, struct ksock_conn, ksnc_list);
-
+		while ((conn = list_first_entry_or_null(&peer_ni->ksnp_conns,
+							struct ksock_conn,
+							ksnc_list)) != NULL)
 			ksocknal_close_conn_locked(conn, 0);
-		}
 	}
 
 	ksocknal_peer_decref(peer_ni);

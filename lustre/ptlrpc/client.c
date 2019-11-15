@@ -529,14 +529,14 @@ void ptlrpc_request_cache_free(struct ptlrpc_request *req)
  */
 void ptlrpc_free_rq_pool(struct ptlrpc_request_pool *pool)
 {
-	struct list_head *l, *tmp;
 	struct ptlrpc_request *req;
 
 	LASSERT(pool != NULL);
 
 	spin_lock(&pool->prp_lock);
-	list_for_each_safe(l, tmp, &pool->prp_req_list) {
-		req = list_entry(l, struct ptlrpc_request, rq_list);
+	while ((req = list_first_entry_or_null(&pool->prp_req_list,
+					       struct ptlrpc_request,
+					       rq_list)) != NULL) {
 		list_del(&req->rq_list);
 		LASSERT(req->rq_reqbuf);
 		LASSERT(req->rq_reqbuf_len == pool->prp_rq_size);
@@ -1073,8 +1073,6 @@ struct ptlrpc_request_set *ptlrpc_prep_fcset(int max, set_producer_func func,
  */
 void ptlrpc_set_destroy(struct ptlrpc_request_set *set)
 {
-	struct list_head *tmp;
-	struct list_head *next;
 	struct ptlrpc_request *req;
 	int expected_phase;
 	int n = 0;
@@ -1093,10 +1091,9 @@ void ptlrpc_set_destroy(struct ptlrpc_request_set *set)
 		 atomic_read(&set->set_remaining) == n, "%d / %d\n",
 		 atomic_read(&set->set_remaining), n);
 
-	list_for_each_safe(tmp, next, &set->set_requests) {
-		struct ptlrpc_request *req =
-			list_entry(tmp, struct ptlrpc_request,
-				   rq_set_chain);
+	while ((req = list_first_entry_or_null(&set->set_requests,
+					       struct ptlrpc_request,
+					       rq_set_chain)) != NULL) {
 		list_del_init(&req->rq_set_chain);
 
 		LASSERT(req->rq_phase == expected_phase);
@@ -1750,7 +1747,7 @@ static inline int ptlrpc_set_producer(struct ptlrpc_request_set *set)
  */
 int ptlrpc_check_set(const struct lu_env *env, struct ptlrpc_request_set *set)
 {
-	struct list_head *tmp, *next;
+	struct ptlrpc_request *req;
 	LIST_HEAD(comp_reqs);
 	int force_timer_recalc = 0;
 
@@ -1758,10 +1755,9 @@ int ptlrpc_check_set(const struct lu_env *env, struct ptlrpc_request_set *set)
 	if (atomic_read(&set->set_remaining) == 0)
 		RETURN(1);
 
-	list_for_each_safe(tmp, next, &set->set_requests) {
-		struct ptlrpc_request *req =
-			list_entry(tmp, struct ptlrpc_request,
-				   rq_set_chain);
+	while ((req = list_first_entry_or_null(&set->set_requests,
+					       struct ptlrpc_request,
+					       rq_set_chain)) != NULL) {
 		struct obd_import *imp = req->rq_import;
 		int unregistered = 0;
 		int async = 1;

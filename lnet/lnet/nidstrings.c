@@ -298,13 +298,12 @@ free_addrranges(struct list_head *list)
 void
 cfs_free_nidlist(struct list_head *list)
 {
-	struct list_head *pos, *next;
 	struct nidrange *nr;
 
-	list_for_each_safe(pos, next, list) {
-		nr = list_entry(pos, struct nidrange, nr_link);
+	while ((nr = list_first_entry_or_null(list, struct nidrange,
+					      nr_link)) != NULL) {
 		free_addrranges(&nr->nr_addrranges);
-		list_del(pos);
+		list_del(&nr->nr_link);
 		CFS_FREE_PTR(nr);
 	}
 }

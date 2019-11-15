@@ -530,11 +530,11 @@ int mgs_init_fsdb_list(struct mgs_device *mgs)
 int mgs_cleanup_fsdb_list(struct mgs_device *mgs)
 {
 	struct fs_db *fsdb;
-	struct list_head *tmp, *tmp2;
 
 	mutex_lock(&mgs->mgs_mutex);
-	list_for_each_safe(tmp, tmp2, &mgs->mgs_fs_db_list) {
-		fsdb = list_entry(tmp, struct fs_db, fsdb_list);
+	while ((fsdb = list_first_entry_or_null(&mgs->mgs_fs_db_list,
+						struct fs_db,
+						fsdb_list)) != NULL) {
 		list_del_init(&fsdb->fsdb_list);
 		mgs_put_fsdb(mgs, fsdb);
 	}

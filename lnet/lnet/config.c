@@ -321,7 +321,6 @@ lnet_ni_free(struct lnet_ni *ni)
 void
 lnet_net_free(struct lnet_net *net)
 {
-	struct list_head *tmp, *tmp2;
 	struct lnet_ni *ni;
 
 	LASSERT(list_empty(&net->net_ni_zombie));
@@ -330,15 +329,17 @@ lnet_net_free(struct lnet_net *net)
 	 * delete any nis that haven't been added yet. This could happen
 	 * if there is a failure on net startup
 	 */
-	list_for_each_safe(tmp, tmp2, &net->net_ni_added) {
-		ni = list_entry(tmp, struct lnet_ni, ni_netlist);
+	while ((ni = list_first_entry_or_null(&net->net_ni_added,
+					      struct lnet_ni,
+					      ni_netlist)) != NULL) {
 		list_del_init(&ni->ni_netlist);
 		lnet_ni_free(ni);
 	}
 
 	/* delete any nis which have been started. */
-	list_for_each_safe(tmp, tmp2, &net->net_ni_list) {
-		ni = list_entry(tmp, struct lnet_ni, ni_netlist);
+	while ((ni = list_first_entry_or_null(&net->net_ni_list,
+					      struct lnet_ni,
+					      ni_netlist)) != NULL) {
 		list_del_init(&ni->ni_netlist);
 		lnet_ni_free(ni);
 	}
@@ -1458,8 +1459,6 @@ lnet_match_networks (char **networksp, char *ip2nets, __u32 *ipaddrs, int nip)
 	LIST_HEAD(raw_entries);
 	LIST_HEAD(matched_nets);
 	LIST_HEAD(current_nets);
-	struct list_head *t;
-	struct list_head *t2;
 	struct lnet_text_buf  *tb;
 	struct lnet_text_buf  *tb2;
 	__u32		  net1;
@@ -1530,9 +1529,9 @@ lnet_match_networks (char **networksp, char *ip2nets, __u32 *ipaddrs, int nip)
 			continue;
 		}
 
-		list_for_each_safe(t, t2, &current_nets) {
-			tb = list_entry(t, struct lnet_text_buf, ltb_list);
-
+		while ((tb = list_first_entry_or_null(&current_nets,
+						      struct lnet_text_buf,
+						      ltb_list)) != NULL) {
 			list_move_tail(&tb->ltb_list, &matched_nets);
 
 			len += scnprintf(networks + len, sizeof(networks) - len,

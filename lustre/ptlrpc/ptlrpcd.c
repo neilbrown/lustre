@@ -311,7 +311,6 @@ static inline void ptlrpc_reqset_get(struct ptlrpc_request_set *set)
  */
 static int ptlrpcd_check(struct lu_env *env, struct ptlrpcd_ctl *pc)
 {
-	struct list_head *tmp, *pos;
 	struct ptlrpc_request *req;
 	struct ptlrpc_request_set *set = pc->pc_set;
 	int rc = 0;
@@ -362,8 +361,9 @@ static int ptlrpcd_check(struct lu_env *env, struct ptlrpcd_ctl *pc)
 	 * NB: ptlrpc_check_set has already moved complted request at the
 	 * head of seq::set_requests
 	 */
-	list_for_each_safe(pos, tmp, &set->set_requests) {
-		req = list_entry(pos, struct ptlrpc_request, rq_set_chain);
+	while ((req = list_first_entry_or_null(&set->set_requests,
+					       struct ptlrpc_request,
+					       rq_set_chain)) != NULL) {
 		if (req->rq_phase != RQ_PHASE_COMPLETE)
 			break;
 
