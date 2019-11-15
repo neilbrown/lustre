@@ -197,7 +197,7 @@ ptlrpcd_select_pc(struct ptlrpc_request *req)
  */
 void ptlrpcd_add_rqset(struct ptlrpc_request_set *set)
 {
-	struct list_head *tmp, *pos;
+	struct ptlrpc_request *req;
 	struct ptlrpcd_ctl *pc;
 	struct ptlrpc_request_set *new;
 	int count, i;
@@ -205,11 +205,7 @@ void ptlrpcd_add_rqset(struct ptlrpc_request_set *set)
 	pc = ptlrpcd_select_pc(NULL);
 	new = pc->pc_set;
 
-	list_for_each_safe(pos, tmp, &set->set_requests) {
-		struct ptlrpc_request *req =
-			list_entry(pos, struct ptlrpc_request,
-				   rq_set_chain);
-
+	list_for_each_entry(req, &set->set_requests, rq_set_chain) {
 		LASSERT(req->rq_phase == RQ_PHASE_NEW);
 		req->rq_set = new;
 		req->rq_queued_time = ktime_get_seconds();
@@ -240,17 +236,14 @@ void ptlrpcd_add_rqset(struct ptlrpc_request_set *set)
 static int ptlrpcd_steal_rqset(struct ptlrpc_request_set *des,
 			       struct ptlrpc_request_set *src)
 {
-	struct list_head *tmp, *pos;
 	struct ptlrpc_request *req;
 	int rc = 0;
 
 	spin_lock(&src->set_new_req_lock);
 	if (likely(!list_empty(&src->set_new_requests))) {
-		list_for_each_safe(pos, tmp, &src->set_new_requests) {
-			req = list_entry(pos, struct ptlrpc_request,
-					 rq_set_chain);
+		list_for_each_entry(req, &src->set_new_requests, rq_set_chain)
 			req->rq_set = des;
-		}
+
 		list_splice_init(&src->set_new_requests,
 				 &des->set_requests);
 		rc = atomic_read(&src->set_new_count);

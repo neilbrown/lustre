@@ -68,7 +68,7 @@ void ptlrpc_initiate_recovery(struct obd_import *imp)
 int ptlrpc_replay_next(struct obd_import *imp, int *inflight)
 {
         int rc = 0;
-	struct list_head *tmp, *pos;
+	struct list_head *tmp;
         struct ptlrpc_request *req = NULL;
         __u64 last_transno;
         ENTRY;
@@ -123,13 +123,13 @@ int ptlrpc_replay_next(struct obd_import *imp, int *inflight)
 	/* All the requests in committed list have been replayed, let's replay
 	 * the imp_replay_list */
 	if (req == NULL) {
-		list_for_each_safe(tmp, pos, &imp->imp_replay_list) {
-			req = list_entry(tmp, struct ptlrpc_request,
-					     rq_replay_list);
-
-			if (req->rq_transno > last_transno)
+		struct ptlrpc_request *rq;
+		list_for_each_entry(rq, &imp->imp_replay_list,
+				    rq_replay_list) {
+			if (req->rq_transno > last_transno) {
+				req = rq;
 				break;
-			req = NULL;
+			}
 		}
 	}
 
@@ -213,13 +213,10 @@ int ptlrpc_resend(struct obd_import *imp)
  */
 void ptlrpc_wake_delayed(struct obd_import *imp)
 {
-	struct list_head *tmp, *pos;
 	struct ptlrpc_request *req;
 
 	spin_lock(&imp->imp_lock);
-	list_for_each_safe(tmp, pos, &imp->imp_delayed_list) {
-		req = list_entry(tmp, struct ptlrpc_request, rq_list);
-
+	list_for_each_entry(req, &imp->imp_delayed_list, rq_list) {
 		DEBUG_REQ(D_HA, req, "waking (set %p):", req->rq_set);
 		ptlrpc_client_wake_req(req);
 	}
