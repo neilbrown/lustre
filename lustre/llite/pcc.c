@@ -823,13 +823,12 @@ pcc_dataset_put(struct pcc_dataset *dataset)
 static int
 pcc_dataset_del(struct pcc_super *super, char *pathname)
 {
-	struct list_head *l, *tmp;
 	struct pcc_dataset *dataset;
 	int rc = -ENOENT;
 
 	down_write(&super->pccs_rw_sem);
-	list_for_each_safe(l, tmp, &super->pccs_datasets) {
-		dataset = list_entry(l, struct pcc_dataset, pccd_linkage);
+	list_for_each_entry(dataset, &super->pccs_datasets,
+			    pccd_linkage) {
 		if (strcmp(dataset->pccd_pathname, pathname) == 0) {
 			list_del_init(&dataset->pccd_linkage);
 			pcc_dataset_put(dataset);

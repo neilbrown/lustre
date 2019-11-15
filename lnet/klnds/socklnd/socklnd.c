@@ -593,10 +593,8 @@ ksocknal_del_peer_locked(struct ksock_peer_ni *peer_ni, __u32 ip)
 	}
 
 	nshared = 0;
-	list_for_each_safe(tmp, nxt, &peer_ni->ksnp_routes) {
-		route = list_entry(tmp, struct ksock_route, ksnr_list);
+	list_for_each_entry(route, &peer_ni->ksnp_routes, ksnr_list)
 		nshared += route->ksnr_share_count;
-	}
 
 	if (nshared == 0) {
 		/* remove everything else if there are no explicit entries
