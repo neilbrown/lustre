@@ -1671,12 +1671,10 @@ out:
 /* caller must hold loi_list_lock */
 void osc_wake_cache_waiters(struct client_obd *cli)
 {
-	struct list_head *l, *tmp;
-	struct osc_cache_waiter *ocw;
+	struct osc_cache_waiter *ocw, *nxt;
 
 	ENTRY;
-	list_for_each_safe(l, tmp, &cli->cl_cache_waiters) {
-		ocw = list_entry(l, struct osc_cache_waiter, ocw_entry);
+	list_for_each_entry_safe(ocw, nxt, &cli->cl_cache_waiters, ocw_entry) {
 
 		ocw->ocw_rc = -EDQUOT;
 

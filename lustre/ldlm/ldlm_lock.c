@@ -1927,7 +1927,7 @@ int ldlm_reprocess_queue(struct ldlm_resource *res, struct list_head *queue,
 			 enum ldlm_process_intention intention,
 			 struct ldlm_lock *hint)
 {
-	struct list_head *tmp, *pos;
+	struct ldlm_lock *pending, *pos;
 	ldlm_processing_policy policy;
 	__u64 flags;
 	int rc = LDLM_ITER_CONTINUE;
@@ -1944,15 +1944,12 @@ int ldlm_reprocess_queue(struct ldlm_resource *res, struct list_head *queue,
 		intention == LDLM_PROCESS_RECOVERY);
 
 restart:
-	list_for_each_safe(tmp, pos, queue) {
-		struct ldlm_lock *pending;
+	list_for_each_entry_safe(pending, pos, queue, l_res_link) {
 		LIST_HEAD(rpc_list);
 
-		pending = list_entry(tmp, struct ldlm_lock, l_res_link);
+		CDEBUG(D_INFO, "Reprocessing lock %p\n", pending);
 
-                CDEBUG(D_INFO, "Reprocessing lock %p\n", pending);
-
-                flags = 0;
+		flags = 0;
 		rc = policy(pending, &flags, intention, &err, &rpc_list);
 		if (pending->l_granted_mode == pending->l_req_mode ||
 		    res->lr_type == LDLM_FLOCK) {

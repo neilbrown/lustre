@@ -2276,8 +2276,7 @@ int ldlm_cli_cancel_unused(struct ldlm_namespace *ns,
 int ldlm_resource_foreach(struct ldlm_resource *res, ldlm_iterator_t iter,
 			  void *closure)
 {
-	struct list_head *tmp, *next;
-	struct ldlm_lock *lock;
+	struct ldlm_lock *lock, *next;
 	int rc = LDLM_ITER_CONTINUE;
 
 	ENTRY;
@@ -2286,15 +2285,13 @@ int ldlm_resource_foreach(struct ldlm_resource *res, ldlm_iterator_t iter,
 		RETURN(LDLM_ITER_CONTINUE);
 
 	lock_res(res);
-	list_for_each_safe(tmp, next, &res->lr_granted) {
-		lock = list_entry(tmp, struct ldlm_lock, l_res_link);
+	list_for_each_entry_safe(lock, next, &res->lr_granted, l_res_link) {
 
 		if (iter(lock, closure) == LDLM_ITER_STOP)
 			GOTO(out, rc = LDLM_ITER_STOP);
 	}
 
-	list_for_each_safe(tmp, next, &res->lr_waiting) {
-		lock = list_entry(tmp, struct ldlm_lock, l_res_link);
+	list_for_each_entry_safe(lock, next, &res->lr_waiting, l_res_link) {
 
 		if (iter(lock, closure) == LDLM_ITER_STOP)
 			GOTO(out, rc = LDLM_ITER_STOP);

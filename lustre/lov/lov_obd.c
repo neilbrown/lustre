@@ -782,25 +782,23 @@ out:
 
 static int lov_cleanup(struct obd_device *obd)
 {
-        struct lov_obd *lov = &obd->u.lov;
-	struct list_head *pos, *tmp;
-        struct pool_desc *pool;
-        ENTRY;
+	struct lov_obd *lov = &obd->u.lov;
+	struct pool_desc *pool, *tmp;
+	ENTRY;
 
 	if (lov->lov_tgts_kobj) {
 		kobject_put(lov->lov_tgts_kobj);
 		lov->lov_tgts_kobj = NULL;
 	}
 
-	list_for_each_safe(pos, tmp, &lov->lov_pool_list) {
-		pool = list_entry(pos, struct pool_desc, pool_list);
-                /* free pool structs */
-                CDEBUG(D_INFO, "delete pool %p\n", pool);
+	list_for_each_entry_safe(pool, tmp, &lov->lov_pool_list, pool_list) {
+		/* free pool structs */
+		CDEBUG(D_INFO, "delete pool %p\n", pool);
 		/* In the function below, .hs_keycmp resolves to
 		 * pool_hashkey_keycmp() */
 		/* coverity[overrun-buffer-val] */
-                lov_pool_del(obd, pool->pool_name);
-        }
+		lov_pool_del(obd, pool->pool_name);
+	}
 	lov_pool_hash_destroy(&lov->lov_pools_hash_body);
         lov_ost_pool_free(&lov->lov_packed);
 
