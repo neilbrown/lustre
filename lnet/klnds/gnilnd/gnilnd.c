@@ -87,15 +87,13 @@ kgnilnd_start_sd_threads(void)
 int
 kgnilnd_close_stale_conns_locked(kgn_peer_t *peer, kgn_conn_t *newconn)
 {
-	kgn_conn_t         *conn;
-	struct list_head   *ctmp, *cnxt;
+	kgn_conn_t         *conn, *cnxt;
 	int                 loopback;
 	int                 count = 0;
 
 	loopback = peer->gnp_nid == peer->gnp_net->gnn_ni->ni_nid;
 
-	list_for_each_safe(ctmp, cnxt, &peer->gnp_conns) {
-		conn = list_entry(ctmp, kgn_conn_t, gnc_list);
+	list_for_each_entry_safe(conn, cnxt, &peer->gnp_conns) {
 
 		if (conn->gnc_state != GNILND_CONN_ESTABLISHED)
 			continue;
@@ -1506,8 +1504,7 @@ kgnilnd_del_conn_or_peer(kgn_net_t *net, lnet_nid_t nid, int command,
 {
 	LIST_HEAD		(souls);
 	LIST_HEAD		(zombies);
-	struct list_head	*ptmp, *pnxt;
-	kgn_peer_t		*peer;
+	kgn_peer_t		*peer, *pnxt;
 	int			lo;
 	int			hi;
 	int			i;
@@ -1525,8 +1522,8 @@ kgnilnd_del_conn_or_peer(kgn_net_t *net, lnet_nid_t nid, int command,
 	}
 
 	for (i = lo; i <= hi; i++) {
-		list_for_each_safe(ptmp, pnxt, &kgnilnd_data.kgn_peers[i]) {
-			peer = list_entry(ptmp, kgn_peer_t, gnp_list);
+		list_for_each_entry_safe(ptmp, pnxt, &kgnilnd_data.kgn_peers[i],
+					 gnp_list) {
 
 			LASSERTF(peer->gnp_net != NULL,
 				"peer %p (%s) with NULL net\n",
@@ -1673,12 +1670,10 @@ out:
 int
 kgnilnd_close_peer_conns_locked(kgn_peer_t *peer, int why)
 {
-	kgn_conn_t         *conn;
-	struct list_head   *ctmp, *cnxt;
+	kgn_conn_t         *conn, *cnxt;
 	int                 count = 0;
 
-	list_for_each_safe(ctmp, cnxt, &peer->gnp_conns) {
-		conn = list_entry(ctmp, kgn_conn_t, gnc_list);
+	list_for_each_entry_safe(ctmp, cnxt, &peer->gnp_conns, gnc_list) {
 
 		if (conn->gnc_state != GNILND_CONN_ESTABLISHED)
 			continue;

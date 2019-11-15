@@ -2868,20 +2868,18 @@ void
 kgnilnd_reaper_check(int idx)
 {
 	struct list_head  *peers = &kgnilnd_data.kgn_peers[idx];
-	struct list_head  *ctmp, *ctmpN;
+	kgn_peer_t        *peer, *pnxt;
 	LIST_HEAD(geriatrics);
 	LIST_HEAD(souls);
 
 	write_lock(&kgnilnd_data.kgn_peer_conn_lock);
 
-	list_for_each_safe(ctmp, ctmpN, peers) {
-		kgn_peer_t        *peer = NULL;
+	list_for_each_entry_safe(peer, pnxt, peers, gnp_list) {
 
 		/* don't timeout stuff if the network is mucked or shutting down */
 		if (kgnilnd_check_hw_quiesce()) {
 			break;
 		}
-		peer = list_entry(ctmp, kgn_peer_t, gnp_list);
 
 		kgnilnd_check_peer_timeouts_locked(peer, &geriatrics, &souls);
 	}
