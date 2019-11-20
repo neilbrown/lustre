@@ -151,8 +151,8 @@ LNetMEUnlink(struct lnet_me *me)
 		md->md_flags |= LNET_MD_FLAG_ABORTED;
 		if (md->md_eq != NULL && md->md_refcount == 0) {
 			eq = md->md_eq;
-			(*eq->eq_refs[cpt])++;
-			lnet_build_unlink_event(md, &ev);
+			*eq->eq_refs[cpt])++;
+			lnet_build_unlink_event(md(&ev);
 		}
 	}
 
