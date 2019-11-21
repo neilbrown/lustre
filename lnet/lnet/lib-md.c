@@ -116,7 +116,7 @@ lnet_cpt_of_md(struct lnet_libmd *md, unsigned int offset)
 {
 	int cpt = CFS_CPT_ANY;
 	unsigned int niov;
-	lnet_kiov_t *kiov = md->md_kiov;
+	struct bio_vec *kiov = md->md_kiov;
 
 	/*
 	 * if the md_options has a bulk handle then we want to look at the
@@ -131,8 +131,8 @@ lnet_cpt_of_md(struct lnet_libmd *md, unsigned int offset)
 
 	niov = md->md_niov;
 
-	while (offset >= kiov->kiov_len) {
-		offset -= kiov->kiov_len;
+	while (offset >= kiov->bv_len) {
+		offset -= kiov->bv_len;
 		niov--;
 		kiov++;
 		if (niov == 0) {
@@ -142,7 +142,7 @@ lnet_cpt_of_md(struct lnet_libmd *md, unsigned int offset)
 	}
 
 	cpt = cfs_cpt_of_node(lnet_cpt_table(),
-			      page_to_nid(kiov->kiov_page));
+			      page_to_nid(kiov->bv_page));
 out:
 	return cpt;
 }
@@ -201,13 +201,13 @@ lnet_md_build(struct lnet_md *umd, int unlink)
 
 		for (i = 0; i < (int)niov; i++) {
 			/* We take the page pointer on trust */
-			if (lmd->md_kiov[i].kiov_offset +
-			    lmd->md_kiov[i].kiov_len > PAGE_SIZE) {
+			if (lmd->md_kiov[i].bv_offset +
+			    lmd->md_kiov[i].bv_len > PAGE_SIZE) {
 				lnet_md_free(lmd);
 				return ERR_PTR(-EINVAL); /* invalid length */
 			}
 
-			total_length += lmd->md_kiov[i].kiov_len;
+			total_length += lmd->md_kiov[i].bv_len;
 		}
 
 		lmd->md_length = total_length;
@@ -229,10 +229,10 @@ lnet_md_build(struct lnet_md *umd, int unlink)
 
 			plen = min_t(int, len, PAGE_SIZE - offset_in_page(pa));
 
-			lmd->md_kiov[i].kiov_page =
+			lmd->md_kiov[i].bv_page =
 				lnet_kvaddr_to_page((unsigned long) pa);
-			lmd->md_kiov[i].kiov_offset = offset_in_page(pa);
-			lmd->md_kiov[i].kiov_len = plen;
+			lmd->md_kiov[i].bv_offset = offset_in_page(pa);
+			lmd->md_kiov[i].bv_len = plen;
 
 			len -= plen;
 			pa += plen;
