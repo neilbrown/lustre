@@ -4386,7 +4386,7 @@ lnet_parse(struct lnet_ni *ni, struct lnet_hdr *hdr, lnet_nid_t from_nid,
 		}
 	}
 
-	msg = lnet_msg_alloc();
+	msg = kmem_cache_zalloc(lnet_msg_cachep, GFP_NOFS);
 	if (msg == NULL) {
 		CERROR("%s, src %s: Dropping %s (out of memory)\n",
 		       libcfs_nid2str(from_nid), libcfs_nid2str(src_nid),
@@ -4394,8 +4394,9 @@ lnet_parse(struct lnet_ni *ni, struct lnet_hdr *hdr, lnet_nid_t from_nid,
 		goto drop;
 	}
 
-	/* msg zeroed in lnet_msg_alloc; i.e. flags all clear,
-	 * pointers NULL etc */
+	/* msg zeroed in kmem_cache_zalloc; i.e. flags all clear,
+	 * pointers NULL etc
+	 */
 
 	msg->msg_type = type;
 	msg->msg_private = private;
@@ -4429,7 +4430,7 @@ lnet_parse(struct lnet_ni *ni, struct lnet_hdr *hdr, lnet_nid_t from_nid,
 		       "(error %ld looking up sender)\n",
 		       libcfs_nid2str(from_nid), libcfs_nid2str(src_nid),
 		       lnet_msgtyp2str(type), PTR_ERR(lpni));
-		lnet_msg_free(msg);
+		kmem_cache_free(lnet_msg_cachep, msg);
 		if (rc == -ESHUTDOWN)
 			/* We are shutting down.  Don't do anything more */
 			return 0;
@@ -4678,7 +4679,7 @@ LNetPut(lnet_nid_t self, struct lnet_handle_md mdh, enum lnet_ack_req ack,
 		return -EIO;
 	}
 
-	msg = lnet_msg_alloc();
+	msg = kmem_cache_zalloc(lnet_msg_cachep, GFP_NOFS);
 	if (msg == NULL) {
 		CERROR("Dropping PUT to %s: ENOMEM on struct lnet_msg\n",
 		       libcfs_id2str(target));
@@ -4711,7 +4712,7 @@ LNetPut(lnet_nid_t self, struct lnet_handle_md mdh, enum lnet_ack_req ack,
 		lnet_res_unlock(cpt);
 
 		lnet_rspt_free(rspt, cpt);
-		lnet_msg_free(msg);
+		kmem_cache_free(lnet_msg_cachep, msg);
 		return -ENOENT;
 	}
 
@@ -4775,7 +4776,7 @@ EXPORT_SYMBOL(LNetPut);
 struct lnet_msg *
 lnet_create_reply_msg(struct lnet_ni *ni, struct lnet_msg *getmsg)
 {
-	struct lnet_msg	*msg = lnet_msg_alloc();
+	struct lnet_msg *msg;
 	struct lnet_libmd *getmd = getmsg->msg_md;
 	struct lnet_process_id peer_id = getmsg->msg_target;
 	int cpt;
@@ -4783,6 +4784,7 @@ lnet_create_reply_msg(struct lnet_ni *ni, struct lnet_msg *getmsg)
 	LASSERT(!getmsg->msg_target_is_router);
 	LASSERT(!getmsg->msg_routing);
 
+	msg = kmem_cache_zalloc(lnet_msg_cachep, GFP_NOFS);
 	if (msg == NULL) {
 		CERROR("%s: Dropping REPLY from %s: can't allocate msg\n",
 		       libcfs_nid2str(ni->ni_nid), libcfs_id2str(peer_id));
@@ -4839,7 +4841,7 @@ lnet_create_reply_msg(struct lnet_ni *ni, struct lnet_msg *getmsg)
 	lnet_net_unlock(cpt);
 
 	if (msg != NULL)
-		lnet_msg_free(msg);
+		kmem_cache_free(lnet_msg_cachep, msg);
 
 	return NULL;
 }
@@ -4904,7 +4906,7 @@ LNetGet(lnet_nid_t self, struct lnet_handle_md mdh,
 		return -EIO;
 	}
 
-	msg = lnet_msg_alloc();
+	msg = kmem_cache_zalloc(lnet_msg_cachep, GFP_NOFS);
 	if (!msg) {
 		CERROR("Dropping GET to %s: ENOMEM on struct lnet_msg\n",
 		       libcfs_id2str(target));
@@ -4936,7 +4938,7 @@ LNetGet(lnet_nid_t self, struct lnet_handle_md mdh,
 
 		lnet_res_unlock(cpt);
 
-		lnet_msg_free(msg);
+		kmem_cache_free(lnet_msg_cachep, msg);
 		lnet_rspt_free(rspt, cpt);
 		return -ENOENT;
 	}

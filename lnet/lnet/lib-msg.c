@@ -433,7 +433,7 @@ lnet_complete_msg_locked(struct lnet_msg *msg, int cpt)
 	}
 
 	lnet_msg_decommit(msg, cpt, status);
-	lnet_msg_free(msg);
+	kmem_cache_free(lnet_msg_cachep, msg);
 	return 0;
 }
 
@@ -1114,7 +1114,7 @@ again:
 	if (!msg->msg_tx_committed && !msg->msg_rx_committed) {
 		/* not committed to network yet */
 		LASSERT(!msg->msg_onactivelist);
-		lnet_msg_free(msg);
+		kmem_cache_free(lnet_msg_cachep, msg);
 		return;
 	}
 
@@ -1185,7 +1185,7 @@ lnet_msg_container_cleanup(struct lnet_msg_container *container)
 		LASSERT(msg->msg_onactivelist);
 		msg->msg_onactivelist = 0;
 		list_del_init(&msg->msg_activelist);
-		lnet_msg_free(msg);
+		kmem_cache_free(lnet_msg_cachep, msg);
 		count++;
 	}
 

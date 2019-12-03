@@ -368,23 +368,6 @@ lnet_ni_decref(struct lnet_ni *ni)
 	lnet_net_unlock(0);
 }
 
-static inline struct lnet_msg *
-lnet_msg_alloc(void)
-{
-	struct lnet_msg *msg;
-
-	msg = kmem_cache_alloc(lnet_msg_cachep, GFP_NOFS | __GFP_ZERO);
-
-	return (msg);
-}
-
-static inline void
-lnet_msg_free(struct lnet_msg *msg)
-{
-	LASSERT(!msg->msg_onactivelist);
-	kmem_cache_free(lnet_msg_cachep, msg);
-}
-
 static inline struct lnet_rsp_tracker *
 lnet_rspt_alloc(int cpt)
 {
