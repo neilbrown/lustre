@@ -1359,7 +1359,7 @@ ksocknal_process_receive(struct ksock_conn *conn,
 
 int
 ksocknal_recv(struct lnet_ni *ni, void *private, struct lnet_msg *msg,
-	      int delayed, unsigned int niov, struct kvec *iov,
+	      int delayed, unsigned int niov,
 	      lnet_kiov_t *kiov, unsigned int offset, unsigned int mlen,
 	      unsigned int rlen)
 {
@@ -1373,13 +1373,13 @@ ksocknal_recv(struct lnet_ni *ni, void *private, struct lnet_msg *msg,
 	conn->ksnc_rx_nob_wanted = mlen;
 	conn->ksnc_rx_nob_left   = rlen;
 
-        if (mlen == 0 || iov != NULL) {
+	if (mlen == 0) {
                 conn->ksnc_rx_nkiov = 0;
                 conn->ksnc_rx_kiov = NULL;
                 conn->ksnc_rx_iov = conn->ksnc_rx_iov_space.iov;
                 conn->ksnc_rx_niov =
                         lnet_extract_iov(LNET_MAX_IOV, conn->ksnc_rx_iov,
-                                         niov, iov, offset, mlen);
+                                         niov, NULL, offset, mlen);
         } else {
                 conn->ksnc_rx_niov = 0;
                 conn->ksnc_rx_iov  = NULL;
