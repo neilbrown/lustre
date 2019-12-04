@@ -2104,7 +2104,6 @@ kgnilnd_send(struct lnet_ni *ni, void *private, struct lnet_msg *lntmsg)
 	int               target_is_router = lntmsg->msg_target_is_router;
 	int               routing = lntmsg->msg_routing;
 	unsigned int      niov = lntmsg->msg_niov;
-	struct kvec      *iov = lntmsg->msg_iov;
 	lnet_kiov_t      *kiov = lntmsg->msg_kiov;
 	unsigned int      offset = lntmsg->msg_offset;
 	unsigned int      nob = lntmsg->msg_len;
@@ -2125,10 +2124,6 @@ kgnilnd_send(struct lnet_ni *ni, void *private, struct lnet_msg *lntmsg)
 		"lntmsg %p nob %d niov %d\n", lntmsg, nob, niov);
 	LASSERTF(niov <= LNET_MAX_IOV,
 		"lntmsg %p niov %d\n", lntmsg, niov);
-
-	/* payload is either all vaddrs or all pages */
-	LASSERTF(!(kiov != NULL && iov != NULL),
-		"lntmsg %p kiov %p iov %p\n", lntmsg, kiov, iov);
 
 	if (msg_vmflush)
 		mpflag = cfs_memory_pressure_get_and_set();
@@ -2214,7 +2209,7 @@ kgnilnd_send(struct lnet_ni *ni, void *private, struct lnet_msg *lntmsg)
 			goto out;
 		}
 
-		rc = kgnilnd_setup_rdma_buffer(tx, niov, iov, kiov, offset, nob);
+		rc = kgnilnd_setup_rdma_buffer(tx, niov, NULL, kiov, offset, nob);
 		if (rc != 0) {
 			kgnilnd_tx_done(tx, rc);
 			rc = -EIO;
@@ -2243,7 +2238,7 @@ kgnilnd_send(struct lnet_ni *ni, void *private, struct lnet_msg *lntmsg)
 		goto out;
 	}
 
-	rc = kgnilnd_setup_immediate_buffer(tx, niov, iov, kiov, offset, nob);
+	rc = kgnilnd_setup_immediate_buffer(tx, niov, NULL, kiov, offset, nob);
 	if (rc != 0) {
 		kgnilnd_tx_done(tx, rc);
 		goto out;
@@ -2266,7 +2261,6 @@ kgnilnd_setup_rdma(struct lnet_ni *ni, kgn_rx_t *rx, struct lnet_msg *lntmsg, in
 	kgn_conn_t    *conn = rx->grx_conn;
 	kgn_msg_t     *rxmsg = rx->grx_msg;
 	unsigned int   niov = lntmsg->msg_niov;
-	struct kvec   *iov = lntmsg->msg_iov;
 	lnet_kiov_t   *kiov = lntmsg->msg_kiov;
 	unsigned int   offset = lntmsg->msg_offset;
 	unsigned int   nob = lntmsg->msg_len;
@@ -2297,7 +2291,7 @@ kgnilnd_setup_rdma(struct lnet_ni *ni, kgn_rx_t *rx, struct lnet_msg *lntmsg, in
 	if (rc != 0)
 		goto failed_1;
 
-	rc = kgnilnd_setup_rdma_buffer(tx, niov, iov, kiov, offset, nob);
+	rc = kgnilnd_setup_rdma_buffer(tx, niov, NULL, kiov, offset, nob);
 	if (rc != 0)
 		goto failed_1;
 

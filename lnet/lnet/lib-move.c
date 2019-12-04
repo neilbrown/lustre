@@ -695,7 +695,6 @@ lnet_ni_recv(struct lnet_ni *ni, void *private, struct lnet_msg *msg,
 
 		if (mlen != 0) {
 			niov = msg->msg_niov;
-			iov  = msg->msg_iov;
 			kiov = msg->msg_kiov;
 
 			LASSERT (niov > 0);
@@ -704,7 +703,7 @@ lnet_ni_recv(struct lnet_ni *ni, void *private, struct lnet_msg *msg,
 	}
 
 	rc = (ni->ni_net->net_lnd->lnd_recv)(ni, private, msg, delayed,
-					     niov, iov, kiov, offset, mlen,
+					     niov, NULL, kiov, offset, mlen,
 					     rlen);
 	if (rc < 0)
 		lnet_finalize(msg, rc);
@@ -719,7 +718,6 @@ lnet_setpayloadbuffer(struct lnet_msg *msg)
 	LASSERT(!msg->msg_routing);
 	LASSERT(md != NULL);
 	LASSERT(msg->msg_niov == 0);
-	LASSERT(msg->msg_iov == NULL);
 	LASSERT(msg->msg_kiov == NULL);
 
 	msg->msg_niov = md->md_niov;
@@ -992,7 +990,6 @@ lnet_post_routed_recv_locked(struct lnet_msg *msg, int do_recv)
 	struct lnet_rtrbufpool *rbp;
 	struct lnet_rtrbuf *rb;
 
-	LASSERT(msg->msg_iov == NULL);
 	LASSERT(msg->msg_kiov == NULL);
 	LASSERT(msg->msg_niov == 0);
 	LASSERT(msg->msg_routing);
