@@ -1667,6 +1667,7 @@ kiblnd_send(struct lnet_ni *ni, void *private, struct lnet_msg *lntmsg)
 		rc = kiblnd_setup_rd_kiov(ni, tx, tx->tx_rd,
 					  payload_niov, payload_kiov,
 					  payload_offset, payload_nob);
+
 		if (rc != 0) {
 			CERROR("Can't setup PUT src for %s: %d\n",
 			       libcfs_nid2str(target.nid), rc);
