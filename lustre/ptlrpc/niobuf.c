@@ -75,7 +75,7 @@ static int ptl_send_buf(struct lnet_handle_md *mdh, void *base, int len,
 		ack = LNET_NOACK_REQ;
 	}
 
-	rc = LNetMDBind (md, LNET_UNLINK, mdh);
+	rc = LNetMDBind(&md, LNET_UNLINK, mdh);
 	if (unlikely(rc != 0)) {
 		CERROR ("LNetMDBind failed: %d\n", rc);
 		LASSERT (rc == -ENOMEM);
@@ -205,7 +205,7 @@ int ptlrpc_start_bulk_transfer(struct ptlrpc_bulk_desc *desc)
 		 * page-aligned. Otherwise we'd have to send client bulk
 		 * sizes over and split server buffer accordingly */
 		ptlrpc_fill_bulk_md(&md, desc, posted_md);
-		rc = LNetMDBind(md, LNET_UNLINK, &desc->bd_mds[posted_md]);
+		rc = LNetMDBind(&md, LNET_UNLINK, &desc->bd_mds[posted_md]);
 		if (rc != 0) {
 			CERROR("%s: LNetMDBind failed for MD %u: rc = %d\n",
 			       exp->exp_obd->obd_name, posted_md, rc);
@@ -388,7 +388,7 @@ int ptlrpc_register_bulk(struct ptlrpc_request *req)
 		}
 
 		/* About to let the network at it... */
-		rc = LNetMDAttach(me, md, LNET_UNLINK,
+		rc = LNetMDAttach(me, &md, LNET_UNLINK,
 				  &desc->bd_mds[posted_md]);
 		if (rc != 0) {
 			CERROR("%s: LNetMDAttach failed x%llu/%d: rc = %d\n",
@@ -857,7 +857,7 @@ int ptl_send_rpc(struct ptlrpc_request *request, int noreply)
 
 		/* We must see the unlink callback to set rq_reply_unlinked,
 		 * so we can't auto-unlink */
-		rc = LNetMDAttach(reply_me, reply_md, LNET_RETAIN,
+		rc = LNetMDAttach(reply_me, &reply_md, LNET_RETAIN,
 				  &request->rq_reply_md_h);
 		if (rc != 0) {
 			CERROR("LNetMDAttach failed: %d\n", rc);
@@ -980,7 +980,7 @@ int ptlrpc_register_rqbd(struct ptlrpc_request_buffer_desc *rqbd)
 	md.user_ptr  = &rqbd->rqbd_cbid;
 	md.eq_handle = ptlrpc_eq;
 
-	rc = LNetMDAttach(me, md, LNET_UNLINK, &rqbd->rqbd_md_h);
+	rc = LNetMDAttach(me, &md, LNET_UNLINK, &rqbd->rqbd_md_h);
 	if (rc == 0)
 		return 0;
 
