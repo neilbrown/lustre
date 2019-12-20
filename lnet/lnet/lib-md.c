@@ -525,6 +525,7 @@ LNetMDUnlink(struct lnet_handle_md mdh)
 {
 	struct lnet_event ev;
 	struct lnet_libmd *md;
+	struct lnet_eq *eq = NULL;
 	int cpt;
 
 	LASSERT(the_lnet.ln_refcount > 0);
@@ -543,8 +544,9 @@ LNetMDUnlink(struct lnet_handle_md mdh)
 	 * when the LND is done, the completion event flags that the MD was
 	 * unlinked. Otherwise, we enqueue an event now... */
 	if (md->md_eq != NULL && md->md_refcount == 0) {
+		eq = md->md_eq;
+		(*eq->eq_refs[cpt])++;
 		lnet_build_unlink_event(md, &ev);
-		lnet_eq_enqueue_event(md->md_eq, &ev);
 	}
 
 	if (md->md_rspt_ptr != NULL)
@@ -553,6 +555,13 @@ LNetMDUnlink(struct lnet_handle_md mdh)
 	lnet_md_unlink(md);
 
 	lnet_res_unlock(cpt);
+
+	if (eq) {
+		lnet_eq_enqueue_event(eq, &ev);
+		lnet_res_lock(cpt);
+		(*eq->eq_refs[cpt])--;
+		lnet_res_unlock(cpt);
+	}
 	return 0;
 }
 EXPORT_SYMBOL(LNetMDUnlink);

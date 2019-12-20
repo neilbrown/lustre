@@ -138,6 +138,7 @@ LNetMEUnlink(struct lnet_me *me)
 {
 	struct lnet_libmd *md;
 	struct lnet_event ev;
+	struct lnet_eq *eq = NULL;
 	int cpt;
 
 	LASSERT(the_lnet.ln_refcount > 0);
@@ -149,14 +150,22 @@ LNetMEUnlink(struct lnet_me *me)
 	if (md != NULL) {
 		md->md_flags |= LNET_MD_FLAG_ABORTED;
 		if (md->md_eq != NULL && md->md_refcount == 0) {
+			eq = md->md_eq;
+			(*eq->eq_refs[cpt])++;
 			lnet_build_unlink_event(md, &ev);
-			lnet_eq_enqueue_event(md->md_eq, &ev);
 		}
 	}
 
 	lnet_me_unlink(me);
 
 	lnet_res_unlock(cpt);
+
+	if (eq) {
+		lnet_eq_enqueue_event(eq, &ev);
+		lnet_res_lock(cpt);
+		(*eq->eq_refs[cpt])--;
+		lnet_res_unlock(cpt);
+	}
 }
 EXPORT_SYMBOL(LNetMEUnlink);
 
