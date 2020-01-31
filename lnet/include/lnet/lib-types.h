@@ -208,7 +208,7 @@ struct lnet_libmd {
 	unsigned int		 md_niov;	/* # frags at end of struct */
 	void		        *md_user_ptr;
 	struct lnet_rsp_tracker *md_rspt_ptr;
-	lnet_eq_handler_t	 md_eq;
+	lnet_handler_t		 md_handler;
 	struct lnet_handle_md	 md_bulk_handle;
 	struct bio_vec		 md_kiov[LNET_MAX_IOV];
 };
@@ -1048,7 +1048,7 @@ struct lnet {
 	 * ln_api_mutex.
 	 */
 	struct lnet_handle_md		ln_ping_target_md;
-	lnet_eq_handler_t		ln_ping_target_eq;
+	lnet_handler_t			ln_ping_target_handler;
 	struct lnet_ping_buffer		*ln_ping_target;
 	atomic_t			ln_ping_target_seqno;
 
@@ -1060,13 +1060,13 @@ struct lnet {
 	 * buffer may linger a while after it has been unlinked, in
 	 * which case the event handler cleans up.
 	 */
-	lnet_eq_handler_t		ln_push_target_eq;
+	lnet_handler_t			ln_push_target_handler;
 	struct lnet_handle_md		ln_push_target_md;
 	struct lnet_ping_buffer		*ln_push_target;
 	int				ln_push_target_nnis;
 
 	/* discovery event queue handle */
-	lnet_eq_handler_t		ln_dc_eq;
+	lnet_handler_t			ln_dc_handler;
 	/* discovery requests */
 	struct list_head		ln_dc_request;
 	/* discovery working list */
@@ -1137,7 +1137,7 @@ struct lnet {
 	 */
 	struct list_head		**ln_mt_zombie_rstqs;
 	/* recovery eq handler */
-	lnet_eq_handler_t		ln_mt_eq;
+	lnet_handler_t			ln_mt_handler;
 
 	/*
 	 * Completed when the discovery and monitor threads can enter their

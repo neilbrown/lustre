@@ -1164,7 +1164,7 @@ lnet_prepare(lnet_pid_t requested_pid)
 	INIT_LIST_HEAD(&the_lnet.ln_mt_localNIRecovq);
 	INIT_LIST_HEAD(&the_lnet.ln_mt_peerNIRecovq);
 	init_waitqueue_head(&the_lnet.ln_dc_waitq);
-	the_lnet.ln_mt_eq = NULL;
+	the_lnet.ln_mt_handler = NULL;
 	init_completion(&the_lnet.ln_started);
 
 	rc = lnet_slab_setup();
@@ -1248,7 +1248,7 @@ lnet_unprepare (void)
 		the_lnet.ln_mt_zombie_rstqs = NULL;
 	}
 
-	the_lnet.ln_mt_eq = NULL;
+	the_lnet.ln_mt_handler = NULL;
 
 	lnet_portals_destroy();
 
@@ -1671,7 +1671,7 @@ lnet_ping_target_setup(struct lnet_ping_buffer **ppbuf,
 	int rc;
 
 	if (set_eq)
-		the_lnet.ln_ping_target_eq =
+		the_lnet.ln_ping_target_handler =
 			lnet_ping_target_event_handler;
 
 	*ppbuf = lnet_ping_target_create(ni_count);
@@ -1697,7 +1697,7 @@ lnet_ping_target_setup(struct lnet_ping_buffer **ppbuf,
 	md.max_size  = 0;
 	md.options   = LNET_MD_OP_GET | LNET_MD_TRUNCATE |
 		       LNET_MD_MANAGE_REMOTE;
-	md.eq_handle = the_lnet.ln_ping_target_eq;
+	md.handler   = the_lnet.ln_ping_target_handler;
 	md.user_ptr  = *ppbuf;
 
 	rc = LNetMDAttach(me, &md, LNET_RETAIN, ping_mdh);
@@ -1865,7 +1865,7 @@ again:
 	md.options   = LNET_MD_OP_PUT | LNET_MD_TRUNCATE |
 		       LNET_MD_MANAGE_REMOTE;
 	md.user_ptr  = pbuf;
-	md.eq_handle = the_lnet.ln_push_target_eq;
+	md.handler   = the_lnet.ln_push_target_handler;
 
 	rc = LNetMDAttach(me, &md, LNET_RETAIN, &mdh);
 	if (rc) {
@@ -1922,7 +1922,7 @@ static int lnet_push_target_init(void)
 	if (the_lnet.ln_push_target)
 		return -EALREADY;
 
-	the_lnet.ln_push_target_eq =
+	the_lnet.ln_push_target_handler =
 		lnet_push_target_event_handler;
 
 	/* Start at the required minimum, we'll enlarge if required. */
@@ -1931,7 +1931,7 @@ static int lnet_push_target_init(void)
 	rc = lnet_push_target_resize();
 
 	if (rc)
-		the_lnet.ln_push_target_eq = NULL;
+		the_lnet.ln_push_target_handler = NULL;
 
 	return rc;
 }
@@ -1956,7 +1956,7 @@ static void lnet_push_target_fini(void)
 	the_lnet.ln_push_target = NULL;
 	the_lnet.ln_push_target_nnis = 0;
 
-	the_lnet.ln_push_target_eq = NULL;
+	the_lnet.ln_push_target_handler = NULL;
 }
 
 static int
@@ -2616,7 +2616,7 @@ LNetNIInit(lnet_pid_t requested_pid)
 
 	lnet_ping_target_update(pbuf, ping_mdh);
 
-	the_lnet.ln_mt_eq = lnet_mt_event_handler;
+	the_lnet.ln_mt_handler = lnet_mt_event_handler;
 
 	rc = lnet_push_target_init();
 	if (rc != 0)
@@ -4094,7 +4094,7 @@ static int lnet_ping(struct lnet_process_id id, signed long timeout,
 	md.max_size  = 0;
 	md.options   = LNET_MD_TRUNCATE;
 	md.user_ptr  = &pd;
-	md.eq_handle = lnet_ping_event_handler;
+	md.handler   = lnet_ping_event_handler;
 
 	init_completion(&pd.completion);
 
