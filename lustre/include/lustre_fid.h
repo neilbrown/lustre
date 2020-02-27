@@ -425,11 +425,11 @@ struct lu_client_seq {
         /* LUSTRE_SEQ_METADATA or LUSTRE_SEQ_DATA */
         enum lu_cli_type        lcs_type;
 
-        /*
-         * Service uuid, passed from MDT + seq name to form unique seq name to
+	/*
+	 * Service uuid, passed from MDT + seq name to form unique seq name to
 	 * use it with debugfs.
-         */
-        char                    lcs_name[80];
+	 */
+	char			lcs_name[LUSTRE_MDT_MAXNAMELEN];
 
         /*
          * Sequence width, that is how many objects may be allocated in one
@@ -475,11 +475,11 @@ struct lu_server_seq {
         /* Mutex for protecting allocation */
 	struct mutex		lss_mutex;
 
-        /*
-         * Service uuid, passed from MDT + seq name to form unique seq name to
+	/*
+	 * Service uuid, passed from MDT + seq name to form unique seq name to
 	 * use it with debugfs.
-         */
-        char                    lss_name[80];
+	 */
+	char			lss_name[LUSTRE_MDT_MAXNAMELEN];
 
         /*
          * Allocation chunks for super and meta sequences. Default values are
