@@ -4609,15 +4609,10 @@ static int mdt_seq_init_cli(const struct lu_env *env, struct mdt_device *mdt)
 
 	/* Note: seq_client_fini will be called in seq_site_fini */
 	snprintf(prefix, MAX_OBD_NAME + 5, "ctl-%s", mdt_obd_name(mdt));
-	rc = seq_client_init(ss->ss_client_seq, NULL, LUSTRE_SEQ_METADATA,
-			     prefix, ss->ss_node_id == 0 ?  ss->ss_control_seq :
+	seq_client_init(ss->ss_client_seq, NULL, LUSTRE_SEQ_METADATA,
+			prefix, ss->ss_node_id == 0 ?  ss->ss_control_seq :
 							    NULL);
 	OBD_FREE(prefix, MAX_OBD_NAME + 5);
-	if (rc != 0) {
-		OBD_FREE_PTR(ss->ss_client_seq);
-		ss->ss_client_seq = NULL;
-		RETURN(rc);
-	}
 
 	rc = seq_server_set_cli(env, ss->ss_server_seq, ss->ss_client_seq);
 
