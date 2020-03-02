@@ -912,7 +912,7 @@ lnet_msg_detach_md(struct lnet_msg *msg, int status)
 {
 	struct lnet_libmd *md = msg->msg_md;
 	int unlink;
-	struct lnet_eq *eq = NULL;
+	lnet_handler_t handler = NULL;
 	int handling_set = 0;
 	int cpt = lnet_cpt_of_cookie(msg->msg_md->md_lh.lh_cookie);
 
@@ -940,8 +940,7 @@ lnet_msg_detach_md(struct lnet_msg *msg, int status)
 			msg->msg_ev.status   = status;
 		}
 		msg->msg_ev.unlinked = unlink;
-		eq = md->md_handler;
-		(*eq->eq_refs[cpt])++;
+		handler = md->md_handler;
 		if (md->md_refcount) {
 			md->md_flags |= LNET_MD_FLAG_HANDLING;
 			handling_set = 1;
@@ -958,10 +957,9 @@ lnet_msg_detach_md(struct lnet_msg *msg, int status)
 	msg->msg_md = NULL;
 	lnet_res_unlock(cpt);
 
-	if (eq) {
-		lnet_eq_enqueue_event(eq, &msg->msg_ev);
+	if (handler) {
+		handler(&msg->msg_ev);
 		lnet_res_lock(cpt);
-		(*eq->eq_refs[cpt])--;
 		if (handling_set) {
 			/* md_refcount is > 0, and it cannot be decremented
 			 * until we clear the 'handling' flag, so it is

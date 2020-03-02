@@ -4039,7 +4039,7 @@ struct ping_data {
 static void
 lnet_ping_event_handler(struct lnet_event *event)
 {
-	struct ping_data *pd = event->md.user_ptr;
+	struct ping_data *pd = event->md_user_ptr;
 
 	CDEBUG(D_NET, "ping event (%d %d)%s\n",
 	       event->type, event->status,

@@ -438,6 +438,7 @@ LNetMDBind(const struct lnet_md *umd, enum lnet_unlink unlink,
 
  out_unlock:
 	lnet_res_unlock(cpt);
+out_free:
 	lnet_md_free(md);
 	return rc;
 }
