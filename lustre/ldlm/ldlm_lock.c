@@ -233,10 +233,7 @@ void ldlm_lock_put(struct ldlm_lock *lock)
                 if (lock->l_lvb_data != NULL)
                         OBD_FREE_LARGE(lock->l_lvb_data, lock->l_lvb_len);
 
-		if (res->lr_type == LDLM_EXTENT) {
-			ldlm_interval_free(ldlm_interval_detach(lock));
-		} else if (res->lr_type == LDLM_IBITS) {
-			if (lock->l_ibits_node != NULL)
+		if (res->lr_type == LDLM_IBITS && lock->l_ibits_node) {
 				OBD_SLAB_FREE_PTR(lock->l_ibits_node,
 						  ldlm_inodebits_slab);
 		}
@@ -1258,15 +1255,12 @@ matched:
 
 static unsigned int itree_overlap_cb(struct interval_node *in, void *args)
 {
-	struct ldlm_interval *node = to_ldlm_interval(in);
+	struct ldlm_lock *lock = container_of(in, struct ldlm_lock,
+					      l_tree_node);
 	struct ldlm_match_data *data = args;
-	struct ldlm_lock *lock;
 
-	list_for_each_entry(lock, &node->li_group, l_sl_policy) {
-		if (lock_matches(lock, data))
-			return INTERVAL_ITER_STOP;
-	}
-	return INTERVAL_ITER_CONT;
+	return lock_matches(lock, data) ?
+		INTERVAL_ITER_STOP : INTERVAL_ITER_CONT;
 }
 
 /**
@@ -1665,7 +1659,7 @@ struct ldlm_lock *ldlm_lock_create(struct ldlm_namespace *ns,
 {
 	struct ldlm_lock	*lock;
 	struct ldlm_resource	*res;
-	int			rc;
+	int rc = 0;
 	ENTRY;
 
 	res = ldlm_resource_get(ns, NULL, res_id, type, 1);
@@ -1687,18 +1681,11 @@ struct ldlm_lock *ldlm_lock_create(struct ldlm_namespace *ns,
 		lock->l_glimpse_ast = cbs->lcs_glimpse;
 	}
 
-	switch (type) {
-	case LDLM_EXTENT:
-		rc = ldlm_extent_alloc_lock(lock);
-		break;
-	case LDLM_IBITS:
+	if (type == LDLM_IBITS) {
 		rc = ldlm_inodebits_alloc_lock(lock);
-		break;
-	default:
-		rc = 0;
+		if (rc)
+			GOTO(out, rc);
 	}
-	if (rc)
-		GOTO(out, rc);
 
 	if (lvb_len) {
 		lock->l_lvb_len = lvb_len;
@@ -1762,7 +1749,6 @@ enum ldlm_error ldlm_lock_enqueue(const struct lu_env *env,
 	struct ldlm_resource *res;
 	int local = ns_is_client(ns);
 	enum ldlm_error rc = ELDLM_OK;
-	struct ldlm_interval *node = NULL;
 #ifdef HAVE_SERVER_SUPPORT
 	bool reconstruct = false;
 #endif
@@ -1815,19 +1801,6 @@ enum ldlm_error ldlm_lock_enqueue(const struct lu_env *env,
 	}
 
 #ifdef HAVE_SERVER_SUPPORT
-	/* For a replaying lock, it might be already in granted list. So
-	 * unlinking the lock will cause the interval node to be freed, we
-	 * have to allocate the interval node early otherwise we can't regrant
-	 * this lock in the future. - jay
-	 *
-	 * The only time the ldlm_resource changes for the ldlm_lock is when
-	 * ldlm_lock_change_resource() is called and that only happens for
-	 * the Lustre client case.
-	 */
-	if (!local && (*flags & LDLM_FL_REPLAY) &&
-	    lock->l_resource->lr_type == LDLM_EXTENT)
-		OBD_SLAB_ALLOC_PTR_GFP(node, ldlm_interval_slab, GFP_NOFS);
-
 	reconstruct = !local && lock->l_resource->lr_type == LDLM_FLOCK &&
 		      !(*flags & LDLM_FL_TEST_LOCK);
 	if (reconstruct) {
@@ -1848,20 +1821,11 @@ enum ldlm_error ldlm_lock_enqueue(const struct lu_env *env,
 		GOTO(out, rc = ELDLM_OK);
         }
 
-        ldlm_resource_unlink_lock(lock);
-        if (res->lr_type == LDLM_EXTENT && lock->l_tree_node == NULL) {
-                if (node == NULL) {
-                        ldlm_lock_destroy_nolock(lock);
-                        GOTO(out, rc = -ENOMEM);
-                }
-
-		INIT_LIST_HEAD(&node->li_group);
-                ldlm_interval_attach(node, lock);
-                node = NULL;
-        }
+	ldlm_resource_unlink_lock(lock);
 
 	/* Some flags from the enqueue want to make it into the AST, via the
-	 * lock's l_flags. */
+	 * lock's l_flags.
+	 */
 	if (*flags & LDLM_FL_AST_DISCARD_DATA)
 		ldlm_set_ast_discard_data(lock);
 	if (*flags & LDLM_FL_TEST_LOCK)
@@ -1922,8 +1886,6 @@ out:
 				  req, 0, NULL, false, 0);
 	}
 #endif
-        if (node)
-                OBD_SLAB_FREE(node, ldlm_interval_slab, sizeof(*node));
         return rc;
 }
 
