@@ -42,6 +42,7 @@
 #include <linux/inetdevice.h>
 
 #include <libcfs/linux/linux-time.h>
+#include <libcfs/linux/linux-net.h>
 #include <libcfs/libcfs.h>
 #include <lnet/lib-lnet.h>
 
@@ -184,9 +185,8 @@ static struct socket *
 lnet_sock_create(int interface, struct sockaddr *remaddr,
 		 int local_port, struct net *ns)
 {
-	struct socket	   *sock;
-	int		    rc;
-	int		    option;
+	struct socket *sock;
+	int rc;
 
 #ifdef HAVE_SOCK_CREATE_KERN_USE_NET
 	rc = sock_create_kern(ns, PF_INET, SOCK_STREAM, 0, &sock);
@@ -198,13 +198,7 @@ lnet_sock_create(int interface, struct sockaddr *remaddr,
 		return ERR_PTR(rc);
 	}
 
-	option = 1;
-	rc = kernel_setsockopt(sock, SOL_SOCKET, SO_REUSEADDR,
-			       (char *)&option, sizeof(option));
-	if (rc) {
-		CERROR("Can't set SO_REUSEADDR for socket: %d\n", rc);
-		goto failed;
-	}
+	sock->sk->sk_reuseport = 1;
 
 	if (interface >= 0 || local_port != 0) {
 		struct sockaddr_in locaddr = {};
@@ -245,34 +239,21 @@ failed:
 	return ERR_PTR(rc);
 }
 
-int
+void
 lnet_sock_setbuf(struct socket *sock, int txbufsize, int rxbufsize)
 {
-	int		    option;
-	int		    rc;
+	struct sock *sk = sock->sk;
 
 	if (txbufsize != 0) {
-		option = txbufsize;
-		rc = kernel_setsockopt(sock, SOL_SOCKET, SO_SNDBUF,
-				       (char *)&option, sizeof(option));
-		if (rc != 0) {
-			CERROR("Can't set send buffer %d: %d\n",
-				option, rc);
-			return rc;
-		}
+		sk->sk_userlocks |= SOCK_SNDBUF_LOCK;
+		sk->sk_sndbuf = txbufsize;
+		sk->sk_write_space(sk);
 	}
 
 	if (rxbufsize != 0) {
-		option = rxbufsize;
-		rc = kernel_setsockopt(sock, SOL_SOCKET, SO_RCVBUF,
-				       (char *)&option, sizeof(option));
-		if (rc != 0) {
-			CERROR("Can't set receive buffer %d: %d\n",
-				option, rc);
-			return rc;
-		}
+		sk->sk_userlocks |= SOCK_RCVBUF_LOCK;
+		sk->sk_sndbuf = rxbufsize;
 	}
-	return 0;
 }
 EXPORT_SYMBOL(lnet_sock_setbuf);
 
@@ -307,16 +288,13 @@ lnet_sock_getaddr(struct socket *sock, bool remote, __u32 *ip, int *port)
 }
 EXPORT_SYMBOL(lnet_sock_getaddr);
 
-int
-lnet_sock_getbuf(struct socket *sock, int *txbufsize, int *rxbufsize)
+void lnet_sock_getbuf(struct socket *sock, int *txbufsize, int *rxbufsize)
 {
 	if (txbufsize != NULL)
 		*txbufsize = sock->sk->sk_sndbuf;
 
 	if (rxbufsize != NULL)
 		*rxbufsize = sock->sk->sk_rcvbuf;
-
-	return 0;
 }
 EXPORT_SYMBOL(lnet_sock_getbuf);
 
