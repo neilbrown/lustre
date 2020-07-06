@@ -3490,7 +3490,7 @@ kiblnd_connd (void *arg)
 	int peer_index = 0;
 	unsigned long deadline = jiffies;
 
-	init_waitqueue_entry(&wait, current);
+	init_wait(&wait);
 	kiblnd_data.kib_connd = current;
 
 	spin_lock_irqsave(lock, flags);
@@ -3772,7 +3772,7 @@ kiblnd_scheduler(void *arg)
 	bool did_something;
 	int rc;
 
-	init_waitqueue_entry(&wait, current);
+	init_wait(&wait);
 
 	sched = kiblnd_data.kib_scheds[KIB_THREAD_CPT(id)];
 
@@ -3905,7 +3905,7 @@ kiblnd_failover_thread(void *arg)
 
 	LASSERT(*kiblnd_tunables.kib_dev_failover != 0);
 
-	init_waitqueue_entry(&wait, current);
+	init_wait(&wait);
 	write_lock_irqsave(glock, flags);
 
 	while (!kiblnd_data.kib_shutdown) {
