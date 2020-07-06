@@ -1352,7 +1352,7 @@ int ldlm_cli_cancel_req(struct obd_export *exp, struct list_head *cancels,
 			ptlrpc_request_free(req);
 			GOTO(out, rc);
 		}
-
+#ifdef HAVE_SERVER_SUPPORT
 		/*
 		 * If OSP want cancel cross-MDT lock, let's not block it in
 		 * in recovery, otherwise the lock will not released, if
@@ -1369,7 +1369,7 @@ int ldlm_cli_cancel_req(struct obd_export *exp, struct list_head *cancels,
 			    top_dev->ld_obd->obd_recovering)
 				req->rq_allow_replay = 1;
 		}
-
+#endif /* HAVE_SERVER_SUPPORT */
 		req->rq_request_portal = LDLM_CANCEL_REQUEST_PORTAL;
 		req->rq_reply_portal = LDLM_CANCEL_REPLY_PORTAL;
 		ptlrpc_at_set_req_timeout(req);

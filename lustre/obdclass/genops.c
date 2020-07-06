@@ -1361,6 +1361,7 @@ int class_connect(struct lustre_handle *conn, struct obd_device *obd,
 }
 EXPORT_SYMBOL(class_connect);
 
+#ifdef HAVE_SERVER_SUPPORT
 /* if export is involved in recovery then clean up related things */
 static void class_export_recovery_cleanup(struct obd_export *exp)
 {
@@ -1402,6 +1403,7 @@ static void class_export_recovery_cleanup(struct obd_export *exp)
 	}
 	spin_unlock(&exp->exp_lock);
 }
+#endif /* HAVE_SERVER_SUPPORT */
 
 /* This function removes 1-3 references from the export:
  * 1 - for export pointer passed
@@ -1440,8 +1442,9 @@ int class_disconnect(struct obd_export *export)
 
 	CDEBUG(D_IOCTL, "disconnect: cookie %#llx\n",
                export->exp_handle.h_cookie);
-
-        class_export_recovery_cleanup(export);
+#ifdef HAVE_SERVER_SUPPORT
+	class_export_recovery_cleanup(export);
+#endif
         class_unlink_export(export);
 no_disconn:
         class_export_put(export);

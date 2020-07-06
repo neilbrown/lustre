@@ -614,34 +614,37 @@ struct obd_device {
 	char				 obd_name[MAX_OBD_NAME];
 
 	/* bitfield modification is protected by obd_dev_lock */
-	unsigned long
-		obd_attached:1,		/* finished attach */
-		obd_set_up:1,		/* finished setup */
-		obd_recovering:1,	/* there are recoverable clients */
-		obd_abort_recovery:1,	/* recovery expired */
-		obd_abort_recov_mdt:1,	/* only abort recovery between MDTs */
-		obd_version_recov:1,	/* obd uses version checking */
-		obd_replayable:1,	/* recovery enabled; inform clients */
-		obd_no_recov:1,		/* fail instead of retry messages */
-		obd_stopping:1,		/* started cleanup */
-		obd_starting:1,		/* started setup */
-		obd_force:1,		/* cleanup with > 0 obd refcount */
-		obd_fail:1,		/* cleanup with failover */
-		obd_no_conn:1,		/* deny new connections */
-		obd_inactive:1,		/* device active/inactive
-					 * (for /proc/status only!!) */
-		obd_no_ir:1,		/* no imperative recovery. */
-		obd_process_conf:1,	/* device is processing mgs config */
-		obd_checksum_dump:1,	/* dump pages upon cksum error */
-		obd_dynamic_nids:1;	/* Allow dynamic NIDs on device */
+	unsigned long obd_attached:1,	/* finished attach */
+		      obd_set_up:1,	/* finished setup */
+		      obd_no_recov:1,	/* fail instead of retry messages */
+		      obd_stopping:1,	/* started cleanup */
+		      obd_starting:1,	/* started setup */
+		      obd_force:1,	/* cleanup with > 0 obd refcount */
+		      obd_fail:1,	/* cleanup with failover */
+		      obd_inactive:1,	/* device active/inactive
+					 * (for /proc/status only!!)
+					 */
+		      obd_process_conf:1,
+		      obd_dynamic_nids:1;/* Allow dynamic NIDs on device */
 #ifdef HAVE_SERVER_SUPPORT
 	/* no committed-transno notification */
-	unsigned long			obd_no_transno:1;
+	unsigned long obd_no_transno:1,
+		      obd_recovering:1,		/* there are recoverable
+						 * clients
+						 */
+		      obd_recovery_expired:1,
+		      obd_abort_recovery:1,	/* recovery expired */
+		      obd_abort_recov_mdt:1,	/* only abort recovery between MDTs */
+		      obd_version_recov:1,	/* obd uses version checking */
+		      obd_replayable:1,		/* recovery enabled; inform
+						 * clients
+						 */
+		      obd_no_conn:1,		/* deny new connections */
+		      obd_no_ir:1,		/* no imperative recovery. */
+		      obd_checksum_dump:1;	/* dump pages upon cksum
+						 * error
+						 */
 #endif
-
-        /* use separate field as it is set in interrupt to don't mess with
-         * protection of other bits using _bh lock */
-        unsigned long obd_recovery_expired:1;
         /* uuid-export hash body */
 	struct rhashtable		obd_uuid_hash;
         /* nid-export hash body */

@@ -1153,12 +1153,13 @@ void ptlrpc_update_export_timer(struct obd_export *exp, time64_t extra_delay)
 	oldest_time = oldest_exp->exp_last_request_time;
 	spin_unlock(&exp->exp_obd->obd_dev_lock);
 
+#ifdef HAVE_SERVER_SUPPORT
 	if (exp->exp_obd->obd_recovering) {
 		/* be nice to everyone during recovery */
 		EXIT;
 		return;
 	}
-
+#endif
 	/* Note - racing to start/reset the obd_eviction timer is safe */
 	if (exp->exp_obd->obd_eviction_timer == 0) {
 		/* Check if the oldest entry is expired. */
@@ -1218,14 +1219,20 @@ static int ptlrpc_check_req(struct ptlrpc_request *req)
 			req, (obd != NULL) ? obd->obd_name : "unknown");
 		rc = -ENODEV;
 	} else if (lustre_msg_get_flags(req->rq_reqmsg) &
-		   (MSG_REPLAY | MSG_REQ_REPLAY_DONE) &&
-		   !obd->obd_recovering) {
+		   (MSG_REPLAY | MSG_REQ_REPLAY_DONE)
+#ifdef HAVE_SERVER_SUPPORT
+		   && !obd->obd_recovering
+#endif
+		   ) {
 		DEBUG_REQ(D_ERROR, req,
 			  "Invalid replay without recovery");
 		class_fail_export(req->rq_export);
 		rc = -ENODEV;
-	} else if (lustre_msg_get_transno(req->rq_reqmsg) != 0 &&
-		   !obd->obd_recovering) {
+	} else if (lustre_msg_get_transno(req->rq_reqmsg) != 0
+#ifdef HAVE_SERVER_SUPPORT
+		   && !obd->obd_recovering
+#endif
+		   ) {
 		DEBUG_REQ(D_ERROR, req,
 			  "Invalid req with transno %llu without recovery",
 			  lustre_msg_get_transno(req->rq_reqmsg));
