@@ -3660,7 +3660,7 @@ static const struct md_ops lmv_md_ops = {
 
 static int __init lmv_init(void)
 {
-	return class_register_type(&lmv_obd_ops, &lmv_md_ops, true, NULL,
+	return class_register_type(&lmv_obd_ops, &lmv_md_ops, true,
 				   LUSTRE_LMV_NAME, NULL);
 }
 
