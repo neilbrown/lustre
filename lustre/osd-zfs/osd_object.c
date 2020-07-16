@@ -64,9 +64,9 @@
 char *osd_obj_tag = "osd_object";
 static int osd_object_sync_delay_us = -1;
 
-static struct dt_object_operations osd_obj_ops;
-static struct lu_object_operations osd_lu_obj_ops;
-static struct dt_object_operations osd_obj_otable_it_ops;
+static const struct dt_object_operations osd_obj_ops;
+static const struct lu_object_operations osd_lu_obj_ops;
+static const struct dt_object_operations osd_obj_otable_it_ops;
 
 static void
 osd_object_sa_fini(struct osd_object *obj)
@@ -2146,7 +2146,7 @@ static int osd_invalidate(const struct lu_env *env, struct dt_object *dt)
 	return 0;
 }
 
-static struct dt_object_operations osd_obj_ops = {
+static const struct dt_object_operations osd_obj_ops = {
 	.do_read_lock		= osd_read_lock,
 	.do_write_lock		= osd_write_lock,
 	.do_read_unlock		= osd_read_unlock,
@@ -2175,7 +2175,7 @@ static struct dt_object_operations osd_obj_ops = {
 	.do_invalidate		= osd_invalidate,
 };
 
-static struct lu_object_operations osd_lu_obj_ops = {
+static const struct lu_object_operations osd_lu_obj_ops = {
 	.loo_object_init	= osd_object_init,
 	.loo_object_delete	= osd_object_delete,
 	.loo_object_release	= osd_object_release,
@@ -2192,7 +2192,7 @@ static int osd_otable_it_attr_get(const struct lu_env *env,
 	return 0;
 }
 
-static struct dt_object_operations osd_obj_otable_it_ops = {
+static const struct dt_object_operations osd_obj_otable_it_ops = {
 	.do_attr_get		= osd_otable_it_attr_get,
 	.do_index_try		= osd_index_try,
 };
