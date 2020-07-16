@@ -352,7 +352,7 @@ static int lprocfs_quota_seq_release(struct inode *inode, struct file *file)
 	return seq_release(inode, file);
 }
 
-struct proc_ops lprocfs_quota_seq_fops = {
+const struct proc_ops lprocfs_quota_seq_fops = {
 	PROC_OWNER(THIS_MODULE)
 	.proc_open	= lprocfs_quota_seq_open,
 	.proc_read	= seq_read,
