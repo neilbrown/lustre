@@ -2139,7 +2139,6 @@ struct cl_object *cl_object_find(const struct lu_env *env, struct cl_device *cd,
                                  const struct cl_object_conf *c);
 
 int  cl_object_header_init(struct cl_object_header *h);
-void cl_object_header_fini(struct cl_object_header *h);
 void cl_object_put        (const struct lu_env *env, struct cl_object *o);
 void cl_object_get        (struct cl_object *o);
 void cl_object_attr_lock  (struct cl_object *o);
@@ -2403,8 +2402,6 @@ int   cl_io_commit_async (const struct lu_env *env, struct cl_io *io,
 			  cl_commit_cbt cb);
 int   cl_io_read_ahead   (const struct lu_env *env, struct cl_io *io,
 			  pgoff_t start, struct cl_read_ahead *ra);
-void  cl_io_rw_advance   (const struct lu_env *env, struct cl_io *io,
-                          size_t nob);
 
 /**
  * True, iff \a io is an O_APPEND write(2).
@@ -2441,9 +2438,6 @@ static inline int cl_io_is_fallocate(const struct cl_io *io)
 }
 
 struct cl_io *cl_io_top(struct cl_io *io);
-
-void cl_io_print(const struct lu_env *env, void *cookie,
-                 lu_printer_t printer, const struct cl_io *io);
 
 #define CL_IO_SLICE_CLEAN(foo_io, base)					\
 do {									\
@@ -2496,8 +2490,6 @@ void cl_page_list_splice (struct cl_page_list *list,
 void cl_page_list_del    (const struct lu_env *env,
                           struct cl_page_list *plist, struct cl_page *page);
 void cl_page_list_disown (const struct lu_env *env,
-                          struct cl_io *io, struct cl_page_list *plist);
-void cl_page_list_assume (const struct lu_env *env,
                           struct cl_io *io, struct cl_page_list *plist);
 void cl_page_list_discard(const struct lu_env *env,
                           struct cl_io *io, struct cl_page_list *plist);
@@ -2609,7 +2601,6 @@ void cl_env_percpu_put(struct lu_env *env);
 /*
  * Misc
  */
-void cl_attr2lvb(struct ost_lvb *lvb, const struct cl_attr *attr);
 void cl_lvb2attr(struct cl_attr *attr, const struct ost_lvb *lvb);
 
 struct cl_device *cl_type_setup(const struct lu_env *env, struct lu_site *site,

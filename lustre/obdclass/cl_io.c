@@ -47,6 +47,9 @@
 #include "cl_internal.h"
 #include <libcfs/crypto/llcrypt.h>
 
+static void cl_page_list_assume(const struct lu_env *env,
+				struct cl_io *io, struct cl_page_list *plist);
+
 /*****************************************************************************
  *
  * cl_io interface.
@@ -431,7 +434,8 @@ EXPORT_SYMBOL(cl_io_iter_fini);
 /**
  * Records that read or write io progressed \a nob bytes forward.
  */
-void cl_io_rw_advance(const struct lu_env *env, struct cl_io *io, size_t nob)
+static void cl_io_rw_advance(const struct lu_env *env, struct cl_io *io,
+			    size_t nob)
 {
 	const struct cl_io_slice *scan;
 
@@ -942,11 +946,10 @@ EXPORT_SYMBOL(cl_page_list_fini);
 /**
  * Assumes all pages in a queue.
  */
-void cl_page_list_assume(const struct lu_env *env,
-			 struct cl_io *io, struct cl_page_list *plist)
+static void cl_page_list_assume(const struct lu_env *env,
+				struct cl_io *io, struct cl_page_list *plist)
 {
 	struct cl_page *page;
-
 
 	cl_page_list_for_each(page, plist)
 		cl_page_assume(env, io, page);
@@ -1063,14 +1066,6 @@ struct cl_io *cl_io_top(struct cl_io *io)
         RETURN(io);
 }
 EXPORT_SYMBOL(cl_io_top);
-
-/**
- * Prints human readable representation of \a io to the \a f.
- */
-void cl_io_print(const struct lu_env *env, void *cookie,
-                 lu_printer_t printer, const struct cl_io *io)
-{
-}
 
 /**
  * Fills in attributes that are passed to server together with transfer. Only

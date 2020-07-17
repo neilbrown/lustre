@@ -83,14 +83,6 @@ int cl_object_header_init(struct cl_object_header *h)
 EXPORT_SYMBOL(cl_object_header_init);
 
 /**
- * Finalize cl_object_header.
- */
-void cl_object_header_fini(struct cl_object_header *h)
-{
-        lu_object_header_fini(&h->coh_lu);
-}
-
-/**
  * Returns a cl_object with a given \a fid.
  *
  * Returns either cached or newly created object. Additional reference on the
@@ -858,31 +850,17 @@ void cl_env_put(struct lu_env *env, __u16 *refcheck)
 EXPORT_SYMBOL(cl_env_put);
 
 /**
- * Converts struct cl_attr to struct ost_lvb.
- *
- * \see cl_lvb2attr
- */
-void cl_attr2lvb(struct ost_lvb *lvb, const struct cl_attr *attr)
-{
-        lvb->lvb_size   = attr->cat_size;
-        lvb->lvb_mtime  = attr->cat_mtime;
-        lvb->lvb_atime  = attr->cat_atime;
-        lvb->lvb_ctime  = attr->cat_ctime;
-        lvb->lvb_blocks = attr->cat_blocks;
-}
-
-/**
  * Converts struct ost_lvb to struct cl_attr.
  *
  * \see cl_attr2lvb
  */
 void cl_lvb2attr(struct cl_attr *attr, const struct ost_lvb *lvb)
 {
-        attr->cat_size   = lvb->lvb_size;
-        attr->cat_mtime  = lvb->lvb_mtime;
-        attr->cat_atime  = lvb->lvb_atime;
-        attr->cat_ctime  = lvb->lvb_ctime;
-        attr->cat_blocks = lvb->lvb_blocks;
+	attr->cat_size   = lvb->lvb_size;
+	attr->cat_mtime  = lvb->lvb_mtime;
+	attr->cat_atime  = lvb->lvb_atime;
+	attr->cat_ctime  = lvb->lvb_ctime;
+	attr->cat_blocks = lvb->lvb_blocks;
 }
 EXPORT_SYMBOL(cl_lvb2attr);
 
