@@ -929,6 +929,7 @@ sfw_create_test_rpc(struct sfw_test_unit *tsu, struct lnet_process_id peer,
 					     blklen, sfw_test_rpc_done,
 					     sfw_test_rpc_fini, tsu);
 	} else {
+		swi_cancel_workitem(&rpc->crpc_wi);
 		srpc_init_client_rpc(rpc, peer, tsi->tsi_service, nblk,
 				     blklen, sfw_test_rpc_done,
 				     sfw_test_rpc_fini, tsu);
@@ -945,14 +946,12 @@ sfw_create_test_rpc(struct sfw_test_unit *tsu, struct lnet_process_id peer,
 	return 0;
 }
 
-static int
+static void
 sfw_run_test(struct swi_workitem *wi)
 {
 	struct sfw_test_unit *tsu = container_of(wi, struct sfw_test_unit, tsu_worker);
 	struct sfw_test_instance *tsi = tsu->tsu_instance;
 	struct srpc_client_rpc *rpc = NULL;
-
-        LASSERT (wi == &tsu->tsu_worker);
 
         if (tsi->tsi_ops->tso_prep_rpc(tsu, tsu->tsu_dest, &rpc) != 0) {
                 LASSERT (rpc == NULL);
@@ -979,7 +978,8 @@ sfw_run_test(struct swi_workitem *wi)
 	rpc->crpc_timeout = rpc_timeout;
 	srpc_post_rpc(rpc);
 	spin_unlock(&rpc->crpc_lock);
-	return 0;
+	wi->swi_state = SWI_STATE_RUNNING;
+	return;
 
 test_done:
         /*
@@ -989,9 +989,8 @@ test_done:
          * - my batch is still active; no one can run it again now.
          * Cancel pending schedules and prevent future schedule attempts:
          */
-	swi_exit_workitem(wi);
+	wi->swi_state = SWI_STATE_DONE;
 	sfw_test_unit_done(tsu);
-	return 1;
 }
 
 static int
@@ -1021,7 +1020,7 @@ sfw_run_batch(struct sfw_batch *tsb)
 			tsu->tsu_loop = tsi->tsi_loop;
 			wi = &tsu->tsu_worker;
 			swi_init_workitem(wi, sfw_run_test,
-					  lst_sched_test[lnet_cpt_of_nid(tsu->tsu_dest.nid, NULL)]);
+					  lst_test_wq[lnet_cpt_of_nid(tsu->tsu_dest.nid, NULL)]);
 			swi_schedule_workitem(wi);
 		}
 	}
@@ -1400,9 +1399,12 @@ sfw_create_rpc(struct lnet_process_id peer, int service,
 				     struct srpc_client_rpc, crpc_list);
 		list_del(&rpc->crpc_list);
 
-                srpc_init_client_rpc(rpc, peer, service, 0, 0,
-                                     done, sfw_client_rpc_fini, priv);
-        }
+		/* Ensure that rpc is done */
+		flush_workqueue(rpc->crpc_wi.swi_wq);
+		swi_cancel_workitem(&rpc->crpc_wi);
+		srpc_init_client_rpc(rpc, peer, service, 0, 0,
+				     done, sfw_client_rpc_fini, priv);
+	}
 
 	spin_unlock(&sfw_data.fw_lock);
 

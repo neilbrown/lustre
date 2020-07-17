@@ -67,7 +67,7 @@ srpc_serv_portal(int svc_id)
 }
 
 /* forward ref's */
-static int srpc_handle_rpc(struct swi_workitem *wi);
+static void srpc_handle_rpc(struct swi_workitem *wi);
 
 void srpc_get_counters(struct srpc_counters *cnt)
 {
@@ -177,7 +177,7 @@ srpc_init_server_rpc(struct srpc_server_rpc *rpc,
 	memset(rpc, 0, sizeof(*rpc));
 	swi_init_workitem(&rpc->srpc_wi, srpc_handle_rpc,
 			  srpc_serv_is_framework(scd->scd_svc) ?
-			  lst_sched_serial : lst_sched_test[scd->scd_cpt]);
+			  lst_serial_wq : lst_test_wq[scd->scd_cpt]);
 
 	rpc->srpc_ev.ev_fired = 1; /* no event expected now */
 
@@ -242,7 +242,7 @@ srpc_service_nrpcs(struct srpc_service *svc)
 	       max(nrpcs, SFW_FRWK_WI_MIN) : max(nrpcs, SFW_TEST_WI_MIN);
 }
 
-int srpc_add_buffer(struct swi_workitem *wi);
+void srpc_add_buffer(struct swi_workitem *wi);
 
 static int
 srpc_service_init(struct srpc_service *svc)
@@ -276,10 +276,10 @@ srpc_service_init(struct srpc_service *svc)
 		scd->scd_ev.ev_data = scd;
 		scd->scd_ev.ev_type = SRPC_REQUEST_RCVD;
 
-		/* NB: don't use lst_sched_serial for adding buffer,
+		/* NB: don't use lst_serial_wq for adding buffer,
 		 * see details in srpc_service_add_buffers() */
 		swi_init_workitem(&scd->scd_buf_wi,
-				  srpc_add_buffer, lst_sched_test[i]);
+				  srpc_add_buffer, lst_test_wq[i]);
 
 		if (i != 0 && srpc_serv_is_framework(svc)) {
 			/* NB: framework service only needs srpc_service_cd for
@@ -506,7 +506,7 @@ __must_hold(&scd->scd_lock)
 	return rc;
 }
 
-int
+void
 srpc_add_buffer(struct swi_workitem *wi)
 {
 	struct srpc_service_cd *scd = container_of(wi, struct srpc_service_cd,
@@ -564,7 +564,7 @@ srpc_add_buffer(struct swi_workitem *wi)
 	}
 
 	spin_unlock(&scd->scd_lock);
-	return 0;
+	wi->swi_state = SWI_STATE_RUNNING;
 }
 
 int
@@ -596,15 +596,15 @@ srpc_service_add_buffers(struct srpc_service *sv, int nbuffer)
 		spin_lock(&scd->scd_lock);
 		/*
 		 * NB: srpc_service_add_buffers() can be called inside
-		 * thread context of lst_sched_serial, and we don't normally
+		 * thread context of lst_serial_wq, and we don't normally
 		 * allow to sleep inside thread context of WI scheduler
 		 * because it will block current scheduler thread from doing
 		 * anything else, even worse, it could deadlock if it's
 		 * waiting on result from another WI of the same scheduler.
 		 * However, it's safe at here because scd_buf_wi is scheduled
-		 * by thread in a different WI scheduler (lst_sched_test),
+		 * by thread in a different WI scheduler (lst_test_wq),
 		 * so we don't have any risk of deadlock, though this could
-		 * block all WIs pending on lst_sched_serial for a moment
+		 * block all WIs pending on lst_serial_wq for a moment
 		 * which is not good but not fatal.
 		 */
 		lst_wait_until(scd->scd_buf_err != 0 ||
@@ -651,12 +651,9 @@ srpc_finish_service(struct srpc_service *sv)
 	LASSERT(sv->sv_shuttingdown); /* srpc_shutdown_service called */
 
 	cfs_percpt_for_each(scd, i, sv->sv_cpt_data) {
-		spin_lock(&scd->scd_lock);
-		if (!swi_deschedule_workitem(&scd->scd_buf_wi)) {
-			spin_unlock(&scd->scd_lock);
-			return 0;
-		}
+		swi_cancel_workitem(&scd->scd_buf_wi);
 
+		spin_lock(&scd->scd_lock);
 		if (scd->scd_buf_nposted > 0) {
 			CDEBUG(D_NET, "waiting for %d posted buffers to unlink\n",
 			       scd->scd_buf_nposted);
@@ -671,11 +668,9 @@ srpc_finish_service(struct srpc_service *sv)
 
 		rpc = list_entry(scd->scd_rpc_active.next,
 				 struct srpc_server_rpc, srpc_list);
-		CNETERR("Active RPC %p on shutdown: sv %s, peer %s, wi %s scheduled %d running %d, ev fired %d type %d status %d lnet %d\n",
+		CNETERR("Active RPC %p on shutdown: sv %s, peer %s, wi %s, ev fired %d type %d status %d lnet %d\n",
 			rpc, sv->sv_name, libcfs_id2str(rpc->srpc_peer),
 			swi_state2str(rpc->srpc_wi.swi_state),
-			rpc->srpc_wi.swi_workitem.wi_scheduled,
-			rpc->srpc_wi.swi_workitem.wi_running,
 			rpc->srpc_ev.ev_fired, rpc->srpc_ev.ev_type,
 			rpc->srpc_ev.ev_status, rpc->srpc_ev.ev_lnet);
 		spin_unlock(&scd->scd_lock);
@@ -898,8 +893,6 @@ srpc_server_rpc_done(struct srpc_server_rpc *rpc, int status)
 	struct srpc_service	*sv  = scd->scd_svc;
 	struct srpc_buffer *buffer;
 
-	LASSERT(status != 0 || rpc->srpc_wi.swi_state == SWI_STATE_DONE);
-
 	rpc->srpc_status = status;
 
 	CDEBUG_LIMIT(status == 0 ? D_NET : D_NETERROR,
@@ -936,7 +929,7 @@ srpc_server_rpc_done(struct srpc_server_rpc *rpc, int status)
 	 * Cancel pending schedules and prevent future schedule attempts:
 	 */
 	LASSERT(rpc->srpc_ev.ev_fired);
-	swi_exit_workitem(&rpc->srpc_wi);
+	rpc->srpc_wi.swi_state = SWI_STATE_DONE;
 
 	if (!sv->sv_shuttingdown && !list_empty(&scd->scd_buf_blocked)) {
 		buffer = list_entry(scd->scd_buf_blocked.next,
@@ -954,7 +947,7 @@ srpc_server_rpc_done(struct srpc_server_rpc *rpc, int status)
 }
 
 /* handles an incoming RPC */
-static int srpc_handle_rpc(struct swi_workitem *wi)
+static void srpc_handle_rpc(struct swi_workitem *wi)
 {
 	struct srpc_server_rpc *rpc = container_of(wi, struct srpc_server_rpc,
 						   srpc_wi);
@@ -974,11 +967,10 @@ static int srpc_handle_rpc(struct swi_workitem *wi)
 			LNetMDUnlink(rpc->srpc_bulk->bk_mdh);
 		LNetMDUnlink(rpc->srpc_replymdh);
 
-		if (ev->ev_fired) { /* no more event, OK to finish */
+		wi->swi_state = SWI_STATE_PAUSE;
+		if (ev->ev_fired) /* no more event, OK to finish */
 			srpc_server_rpc_done(rpc, -ESHUTDOWN);
-			return 1;
-		}
-		return 0;
+		return;
 	}
 
 	spin_unlock(&scd->scd_lock);
@@ -997,7 +989,7 @@ static int srpc_handle_rpc(struct swi_workitem *wi)
 		if (msg->msg_magic == 0) {
 			/* moaned already in srpc_lnet_ev_handler */
 			srpc_server_rpc_done(rpc, EBADMSG);
-			return 1;
+			return;
 		}
 
 		srpc_unpack_msg_hdr(msg);
@@ -1013,7 +1005,7 @@ static int srpc_handle_rpc(struct swi_workitem *wi)
 			LASSERT(reply->status == 0 || !rpc->srpc_bulk);
 			if (rc != 0) {
 				srpc_server_rpc_done(rpc, rc);
-				return 1;
+				return;
 			}
 		}
 
@@ -1022,7 +1014,7 @@ static int srpc_handle_rpc(struct swi_workitem *wi)
 		if (rpc->srpc_bulk != NULL) {
 			rc = srpc_do_bulk(rpc);
 			if (rc == 0)
-				return 0; /* wait for bulk */
+				return; /* wait for bulk */
 
 			LASSERT(ev->ev_fired);
 			ev->ev_status = rc;
@@ -1040,16 +1032,16 @@ static int srpc_handle_rpc(struct swi_workitem *wi)
 
 			if (rc != 0) {
 				srpc_server_rpc_done(rpc, rc);
-				return 1;
+				return;
 			}
 		}
 
 		wi->swi_state = SWI_STATE_REPLY_SUBMITTED;
 		rc = srpc_send_reply(rpc);
 		if (rc == 0)
-			return 0; /* wait for reply */
+			return; /* wait for reply */
 		srpc_server_rpc_done(rpc, rc);
-		return 1;
+		return;
 
 	case SWI_STATE_REPLY_SUBMITTED:
 		if (!ev->ev_fired) {
@@ -1060,12 +1052,9 @@ static int srpc_handle_rpc(struct swi_workitem *wi)
 			LASSERT(ev->ev_fired);
 		}
 
-		wi->swi_state = SWI_STATE_DONE;
 		srpc_server_rpc_done(rpc, ev->ev_status);
-		return 1;
+		return;
 	}
-
-	return 0;
 }
 
 static void
@@ -1136,8 +1125,6 @@ srpc_client_rpc_done(struct srpc_client_rpc *rpc, int status)
 {
 	struct swi_workitem *wi = &rpc->crpc_wi;
 
-	LASSERT(status != 0 || wi->swi_state == SWI_STATE_DONE);
-
 	spin_lock(&rpc->crpc_lock);
 
 	rpc->crpc_closed = 1;
@@ -1160,7 +1147,7 @@ srpc_client_rpc_done(struct srpc_client_rpc *rpc, int status)
 	 * Cancel pending schedules and prevent future schedule attempts:
 	 */
 	LASSERT(!srpc_event_pending(rpc));
-	swi_exit_workitem(wi);
+	wi->swi_state = SWI_STATE_DONE;
 
 	spin_unlock(&rpc->crpc_lock);
 
@@ -1168,7 +1155,7 @@ srpc_client_rpc_done(struct srpc_client_rpc *rpc, int status)
 }
 
 /* sends an outgoing RPC */
-int
+void
 srpc_send_rpc(struct swi_workitem *wi)
 {
 	int rc = 0;
@@ -1198,13 +1185,18 @@ srpc_send_rpc(struct swi_workitem *wi)
 	switch (wi->swi_state) {
 	default:
 		LBUG();
+	/* the workqueue can't stop itself so once in SWI_STATE_DONE state
+	 * do nothing.
+	 */
+	case SWI_STATE_DONE:
+		break;
 	case SWI_STATE_NEWBORN:
 		LASSERT(!srpc_event_pending(rpc));
 
 		rc = srpc_prepare_reply(rpc);
 		if (rc != 0) {
 			srpc_client_rpc_done(rpc, rc);
-			return 1;
+			return;
 		}
 
 		rc = srpc_prepare_bulk(rpc);
@@ -1278,9 +1270,8 @@ srpc_send_rpc(struct swi_workitem *wi)
 		    rpc->crpc_status == 0 && reply->msg_body.reply.status != 0)
 			rc = 0;
 
-		wi->swi_state = SWI_STATE_DONE;
 		srpc_client_rpc_done(rpc, rc);
-		return 1;
+		return;
 	}
 
 	if (rc != 0) {
@@ -1297,10 +1288,9 @@ abort:
 
 		if (!srpc_event_pending(rpc)) {
 			srpc_client_rpc_done(rpc, -EINTR);
-			return 1;
+			return;
 		}
 	}
-	return 0;
 }
 
 struct srpc_client_rpc *
