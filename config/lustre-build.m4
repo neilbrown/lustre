@@ -180,8 +180,6 @@ AS_IF([test "x$enable_modules" = xyes], [
 			# This is strange - Lustre supports a target we don't
 			AC_MSG_ERROR([Modules are not supported on $target_os])
 	])
-	# Use OpenSFS UAPI header path instead of linux kernel
-	CPPFLAGS="-I$PWD/lnet/include/uapi -I$PWD/lustre/include/uapi $CPPFLAGS"
 ])
 ]) # LB_CONFIG_MODULES
 
@@ -197,6 +195,8 @@ AC_ARG_ENABLE([utils],
 		[disable building of Lustre utility programs]),
 	[], [enable_utils="yes"])
 AC_MSG_RESULT([$enable_utils])
+# Use OpenSFS UAPI header path instead of linux kernel to built utils
+CPPFLAGS="-I$PWD/lnet/include/uapi -I$PWD/lustre/include/uapi $CPPFLAGS"
 ]) # LB_CONFIG_UTILS
 
 #
