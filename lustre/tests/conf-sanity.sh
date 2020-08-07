@@ -1444,7 +1444,7 @@ test_32newtarball() {
 	pid=$!
 	sync
 	stop_mdt_no_force 1
-	debugfs -R "ls /PENDING" ${MDSDEV1:-$MDSDEV}
+	debugfs -D -R "ls /PENDING" ${MDSDEV1:-$MDSDEV}
 	cp ${MDSDEV1:-$MDSDEV} $tmp/img
 	start_mdt 1
 	kill -s USR1 $pid

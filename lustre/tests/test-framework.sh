@@ -193,9 +193,9 @@ init_test_env() {
 	export DEBUGFS=$DEBUGFS
 	if [ -z "$DEBUGFS" ]; then
 		if which debugfs.ldiskfs >/dev/null 2>&1; then
-			export DEBUGFS=debugfs.ldiskfs
+			export DEBUGFS='debugfs.ldiskfs -D'
 		else
-			export DEBUGFS=debugfs
+			export DEBUGFS='debugfs -D'
 		fi
 	fi
 
