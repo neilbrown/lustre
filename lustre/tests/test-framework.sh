@@ -6780,7 +6780,7 @@ host_id() {
 # Description:
 #   Returns list of ip addresses for each interface
 local_addr_list() {
-	ip addr | awk '/inet\ / {print $2}' | awk -F\/ '{print $1}'
+	ip addr | awk '/inet / {print $2}' | awk -F/ '{print $1}'
 }
 
 is_local_addr() {

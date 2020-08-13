@@ -3219,7 +3219,7 @@ test_44() {
 	dd if=$tmpfile of=$testfile bs=8192 count=1 oflag=direct ||
 		error "could not write to file with O_DIRECT (1)"
 
-	respage=$(vmtouch $testfile | awk '/Resident\ Pages:/ {print $3}')
+	respage=$(vmtouch $testfile | awk '/Resident Pages:/ {print $3}')
 	[ "$respage" == "0/2" ] ||
 		error "write to enc file fell back to buffered IO"
 
@@ -3228,7 +3228,7 @@ test_44() {
 	dd if=$testfile of=$resfile bs=8192 count=1 iflag=direct ||
 		error "could not read from file with O_DIRECT (1)"
 
-	respage=$(vmtouch $testfile | awk '/Resident\ Pages:/ {print $3}')
+	respage=$(vmtouch $testfile | awk '/Resident Pages:/ {print $3}')
 	[ "$respage" == "0/2" ] ||
 		error "read from enc file fell back to buffered IO"
 

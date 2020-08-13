@@ -1575,7 +1575,7 @@ test_27cb() {
 
 	# Strip getstripe output to a space separated list of OSTs
 	local getstripe_osts=$(echo "$getstripe" | sed -e '1,/obdidx/d' |\
-		awk '{print $1}' | tr '\n' '\ ' | sed -e 's/[[:space:]]*$//')
+		awk '{print $1}' | tr '\n' ' ' | sed -e 's/[[:space:]]*$//')
 	[ "$getstripe_osts" = "${osts//,/ }" ] ||
 		error "stripes not on specified OSTs"
 
@@ -1596,7 +1596,7 @@ test_27cc() {
 
 	# Strip getstripe output to a space separated list of OSTs
 	local getstripe_osts=$(echo "$getstripe" | sed -e '1,/obdidx/d' |\
-		awk '{print $1}' | tr '\n' '\ ' | sed -e 's/[[:space:]]*$//')
+		awk '{print $1}' | tr '\n' ' ' | sed -e 's/[[:space:]]*$//')
 	[ "$getstripe_osts" = "${osts//,/ }" ] ||
 		error "stripes not on specified OSTs"
 
@@ -1616,7 +1616,7 @@ test_27cd() {
 
 	# Strip getstripe output to a space separated list of OSTs
 	local getstripe_osts=$(echo "$getstripe" | sed -e '1,/obdidx/d' |\
-		awk '{print $1}' | tr '\n' '\ ' | sed -e 's/[[:space:]]*$//')
+		awk '{print $1}' | tr '\n' ' ' | sed -e 's/[[:space:]]*$//')
 	[ "$getstripe_osts" = "${osts//,/ }" ] ||
 		error "stripes not on specified OSTs"
 
@@ -1648,7 +1648,7 @@ test_27ce() {
 
 	# Strip getstripe output to a space separated list of OSTs
 	local getstripe_osts=$(echo "$getstripe" | sed -e '1,/obdidx/d' |\
-		awk '{print $1}' | tr '\n' '\ ' | sed -e 's/[[:space:]]*$//')
+		awk '{print $1}' | tr '\n' ' ' | sed -e 's/[[:space:]]*$//')
 	[ "$getstripe_osts" = "${osts//,/ }" ] ||
 		error "stripes not on specified OSTs"
 
@@ -5984,9 +5984,9 @@ test_newerXY_base() {
 
 	if [ $y == "t" ]; then
 		if [ $x == "b" ]; then
-			ref="\"$(do_facet mds1 date +"%Y-%m-%d\ %H:%M:%S")\""
+			ref=\"$(do_facet mds1 date +"%Y-%m-%d\ %H:%M:%S")\"
 		else
-			ref="\"$(date +"%Y-%m-%d %H:%M:%S")\""
+			ref=\"$(date +"%Y-%m-%d %H:%M:%S")\"
 		fi
 	else
 		ref=$DIR/$tfile.newer.$x$y
@@ -5999,9 +5999,9 @@ test_newerXY_base() {
 	sleep 2
 	if [ $y == "t" ]; then
 		if [ $x == "b" ]; then
-			negref="\"$(do_facet mds1 date +"%Y-%m-%d\ %H:%M:%S")\""
+			negref=\"$(do_facet mds1 date +"%Y-%m-%d\ %H:%M:%S")\"
 		else
-			negref="\"$(date +"%Y-%m-%d %H:%M:%S")\""
+			negref=\"$(date +"%Y-%m-%d %H:%M:%S")\"
 		fi
 	else
 		negref=$DIR/$tfile.negnewer.$x$y
