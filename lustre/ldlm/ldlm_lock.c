@@ -483,25 +483,26 @@ static struct ldlm_lock *ldlm_lock_new(struct ldlm_resource *resource)
 	INIT_LIST_HEAD(&lock->l_sl_policy);
 	INIT_HLIST_NODE(&lock->l_exp_hash);
 	INIT_HLIST_NODE(&lock->l_exp_flock_hash);
+	RB_CLEAR_NODE(&lock->l_rb);
 
-        lprocfs_counter_incr(ldlm_res_to_ns(resource)->ns_stats,
-                             LDLM_NSS_LOCKS);
+	lprocfs_counter_incr(ldlm_res_to_ns(resource)->ns_stats,
+			     LDLM_NSS_LOCKS);
 	INIT_HLIST_NODE(&lock->l_handle.h_link);
 	class_handle_hash(&lock->l_handle, lock_handle_owner);
 
-        lu_ref_init(&lock->l_reference);
-        lu_ref_add(&lock->l_reference, "hash", lock);
+	lu_ref_init(&lock->l_reference);
+	lu_ref_add(&lock->l_reference, "hash", lock);
 	lock->l_callback_timestamp = 0;
 	lock->l_activity = 0;
 
 #if LUSTRE_TRACKS_LOCK_EXP_REFS
 	INIT_LIST_HEAD(&lock->l_exp_refs_link);
-        lock->l_exp_refs_nr = 0;
-        lock->l_exp_refs_target = NULL;
+	lock->l_exp_refs_nr = 0;
+	lock->l_exp_refs_target = NULL;
 #endif
 	INIT_LIST_HEAD(&lock->l_exp_list);
 
-        RETURN(lock);
+	RETURN(lock);
 }
 
 /**
@@ -1238,7 +1239,7 @@ static bool lock_matches(struct ldlm_lock *lock, void *vdata)
 
 	/* Filter locks by skipping flags */
 	if (data->lmd_skip_flags & lock->l_flags)
-		return INTERVAL_ITER_CONT;
+		return false;
 
 matched:
 	if (data->lmd_flags & LDLM_FL_TEST_LOCK) {
@@ -1265,28 +1266,28 @@ matched:
 struct ldlm_lock *search_itree(struct ldlm_resource *res,
 			       struct ldlm_match_data *data)
 {
-	struct interval_node_extent ext = {
-		.start     = data->lmd_policy->l_extent.start,
-		.end       = data->lmd_policy->l_extent.end
-	};
 	int idx;
+	__u64 end =data->lmd_policy->l_extent.end;
 
 	data->lmd_lock = NULL;
 
 	if (data->lmd_match & LDLM_MATCH_RIGHT)
-		ext.end = OBD_OBJECT_EOF;
+		end = OBD_OBJECT_EOF;
 
 	for (idx = 0; idx < LCK_MODE_NUM; idx++) {
 		struct ldlm_interval_tree *tree = &res->lr_itree[idx];
 
-		if (tree->lit_root == NULL)
+		if (INTERVAL_TREE_EMPTY(&tree->lit_root))
 			continue;
 
 		if (!(tree->lit_mode & *data->lmd_mode))
 			continue;
 
-		ldlm_extent_search(tree->lit_root, &ext,
+		ldlm_extent_search(&tree->lit_root,
+				   data->lmd_policy->l_extent.start,
+				   end,
 				   lock_matches, data);
+
 		if (data->lmd_lock)
 			return data->lmd_lock;
 	}

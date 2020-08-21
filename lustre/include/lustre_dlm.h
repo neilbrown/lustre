@@ -48,7 +48,7 @@
 #include <lustre_net.h>
 #include <lustre_import.h>
 #include <lustre_handles.h>
-#include <interval_tree.h> /* for interval_node{}, ldlm_extent */
+#include <linux/interval_tree_generic.h>
 #include <lu_ref.h>
 
 #include "lustre_dlm_flags.h"
@@ -689,9 +689,9 @@ struct ldlm_cb_async_args {
  */
 struct ldlm_interval_tree {
 	/** Tree size. */
-	int			lit_size;
-	enum ldlm_mode		lit_mode;  /* lock mode */
-	struct interval_node	*lit_root; /* actual ldlm_interval */
+	int				lit_size;
+	enum ldlm_mode			lit_mode;  /* lock mode */
+	struct interval_tree_root	lit_root; /* actual interval tree */
 };
 
 /**
@@ -799,9 +799,10 @@ struct ldlm_lock {
 	 * Internal structures per lock type..
 	 */
 	union {
-		struct interval_node	l_tree_node;
+		struct rb_node		l_rb;
 		struct ldlm_ibits_node  *l_ibits_node;
 	};
+	u64				l_subtree_last;
 	/**
 	 * Per export hash of locks.
 	 * Protected by per-bucket exp->exp_lock_hash locks.
@@ -1007,6 +1008,27 @@ enum ldlm_match_flags {
 	LDLM_MATCH_AST_ANY = BIT(2),
 	LDLM_MATCH_RIGHT   = BIT(3),
 };
+
+#ifdef HAVE_INTERVAL_TREE_CACHED
+#define extent_last(tree) rb_entry_safe(rb_last(&tree->lit_root.rb_root),\
+					struct ldlm_lock, l_rb)
+#define extent_first(tree) rb_entry_safe(rb_first(&tree->lit_root.rb_root),\
+					 struct ldlm_lock, l_rb)
+#define extent_top(tree) rb_entry_safe(tree->lit_root.rb_root.rb_node,	\
+				       struct ldlm_lock, l_rb)
+#else
+#define extent_last(tree) rb_entry_safe(rb_last(&tree->lit_root),	\
+					struct ldlm_lock, l_rb)
+#define extent_first(tree) rb_entry_safe(rb_first(&tree->lit_root),	\
+					 struct ldlm_lock, l_rb)
+#define extent_top(tree) rb_entry_safe(tree->lit_root.rb_node,		\
+				       struct ldlm_lock, l_rb)
+#endif
+
+#define extent_next(lock) rb_entry_safe(rb_next(&lock->l_rb),		\
+					struct ldlm_lock, l_rb)
+#define extent_prev(lock) rb_entry_safe(rb_prev(&lock->l_rb),		\
+					struct ldlm_lock, l_rb)
 
 /**
  * Describe the overlap between two locks.  itree_overlap_cb data.

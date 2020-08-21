@@ -40,6 +40,7 @@
 #include <libcfs/libcfs_hash.h>
 #include <obd_support.h>
 #include <lprocfs_status.h>
+#include <interval_tree.h>
 #include "mdt_internal.h"
 
 static unsigned int
