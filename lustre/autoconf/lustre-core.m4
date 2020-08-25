@@ -1954,6 +1954,30 @@ bi_bdev, [
 ]) # LC_BI_BDEV
 
 #
+# LC_INTERVAL_TREE_CACHED
+#
+# 4.14 f808c13fd3738948e10196496959871130612b61
+# switched INTERVAL_TREE_DEFINE to use cached RB_Trees.
+#
+AC_DEFUN([LC_INTERVAL_TREE_CACHED], [
+LB_CHECK_COMPILE([if interval_trees use rb_tree_cached],
+itree_cached, [
+	#include <linux/interval_tree_generic.h>
+	struct foo { struct rb_node rb; int last; int a,b;};
+	#define START(n) ((n)->a)
+	#define LAST(n) ((n)->b)
+	struct rb_root_cached tree;
+	INTERVAL_TREE_DEFINE(struct foo, rb, int, last,
+		START, LAST, , foo);
+],[
+	foo_insert(NULL, &tree);
+],[
+	AC_DEFINE(HAVE_INTERVAL_TREE_CACHED, 1,
+		[interval trees use rb_tree_cached])
+])
+]) # LC_INTERVAL_TREE_CACHED
+
+#
 # LC_IS_ENCRYPTED
 #
 # 4.14 introduced IS_ENCRYPTED and S_ENCRYPTED
@@ -2428,6 +2452,7 @@ AC_DEFUN([LC_PROG_LINUX], [
 	# 4.14
 	LC_PAGEVEC_INIT_ONE_PARAM
 	LC_BI_BDEV
+	LC_INTERVAL_TREE_CACHED
 
 	# 4.17
 	LC_VM_FAULT_T
