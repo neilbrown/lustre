@@ -681,21 +681,21 @@ LPROC_SEQ_FOPS_RO(nodemap_map_mode);
 LPROC_SEQ_FOPS_RO(nodemap_audit_mode);
 LPROC_SEQ_FOPS_RO(nodemap_forbid_encryption);
 
-const struct proc_ops nodemap_ranges_fops = {
+static const struct proc_ops nodemap_ranges_fops = {
 	.proc_open	= nodemap_ranges_open,
 	.proc_read	= seq_read,
 	.proc_lseek	= seq_lseek,
 	.proc_release	= single_release,
 };
 
-const struct proc_ops nodemap_idmap_fops = {
+static const struct proc_ops nodemap_idmap_fops = {
 	.proc_open	= nodemap_idmap_open,
 	.proc_read	= seq_read,
 	.proc_lseek	= seq_lseek,
 	.proc_release	= single_release,
 };
 
-const struct proc_ops nodemap_exports_fops = {
+static const struct proc_ops nodemap_exports_fops = {
 	.proc_open	= nodemap_exports_open,
 	.proc_read	= seq_read,
 	.proc_lseek	= seq_lseek,

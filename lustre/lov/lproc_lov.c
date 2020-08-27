@@ -277,12 +277,12 @@ struct lprocfs_vars lprocfs_lov_obd_vars[] = {
 	{ NULL }
 };
 
-const struct proc_ops lov_proc_target_fops = {
-        PROC_OWNER(THIS_MODULE)
-        .proc_open	= lov_target_seq_open,
-        .proc_read	= seq_read,
-        .proc_lseek	= seq_lseek,
-        .proc_release	= lprocfs_seq_release,
+static const struct proc_ops lov_proc_target_fops = {
+	PROC_OWNER(THIS_MODULE)
+	.proc_open	= lov_target_seq_open,
+	.proc_read	= seq_read,
+	.proc_lseek	= seq_lseek,
+	.proc_release	= lprocfs_seq_release,
 };
 #endif /* CONFIG_PROC_FS */
 
