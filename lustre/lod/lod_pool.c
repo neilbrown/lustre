@@ -59,6 +59,7 @@
 
 #include <libcfs/libcfs.h>
 #include <libcfs/linux/linux-hash.h>
+#include <libcfs/linux/linux-fs.h>
 #include <obd.h>
 #include "lod_internal.h"
 
@@ -317,11 +318,11 @@ static int pool_proc_open(struct inode *inode, struct file *file)
 	return rc;
 }
 
-static struct file_operations pool_proc_operations = {
-	.open		= pool_proc_open,
-	.read		= seq_read,
-	.llseek		= seq_lseek,
-	.release	= seq_release,
+static struct proc_ops pool_proc_operations = {
+	.proc_open	= pool_proc_open,
+	.proc_read	= seq_read,
+	.proc_lseek	= seq_lseek,
+	.proc_release	= seq_release,
 };
 
 /**

@@ -681,25 +681,25 @@ LPROC_SEQ_FOPS_RO(nodemap_map_mode);
 LPROC_SEQ_FOPS_RO(nodemap_audit_mode);
 LPROC_SEQ_FOPS_RO(nodemap_forbid_encryption);
 
-const struct file_operations nodemap_ranges_fops = {
-	.open			= nodemap_ranges_open,
-	.read			= seq_read,
-	.llseek			= seq_lseek,
-	.release		= single_release
+const struct proc_ops nodemap_ranges_fops = {
+	.proc_open	= nodemap_ranges_open,
+	.proc_read	= seq_read,
+	.proc_lseek	= seq_lseek,
+	.proc_release	= single_release,
 };
 
-const struct file_operations nodemap_idmap_fops = {
-	.open			= nodemap_idmap_open,
-	.read			= seq_read,
-	.llseek			= seq_lseek,
-	.release		= single_release
+const struct proc_ops nodemap_idmap_fops = {
+	.proc_open	= nodemap_idmap_open,
+	.proc_read	= seq_read,
+	.proc_lseek	= seq_lseek,
+	.proc_release	= single_release,
 };
 
-const struct file_operations nodemap_exports_fops = {
-	.open			= nodemap_exports_open,
-	.read			= seq_read,
-	.llseek			= seq_lseek,
-	.release		= single_release
+const struct proc_ops nodemap_exports_fops = {
+	.proc_open	= nodemap_exports_open,
+	.proc_read	= seq_read,
+	.proc_lseek	= seq_lseek,
+	.proc_release	= single_release,
 };
 
 static struct lprocfs_vars lprocfs_nodemap_vars[] = {

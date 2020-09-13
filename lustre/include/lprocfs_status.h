@@ -47,6 +47,7 @@
 #include <linux/seq_file.h>
 
 #include <libcfs/libcfs.h>
+#include <libcfs/linux/linux-fs.h>
 #include <uapi/linux/lustre/lustre_idl.h>
 
 /*
@@ -56,7 +57,7 @@
  */
 struct lprocfs_vars {
 	const char			*name;
-	const struct file_operations	*fops;
+	const struct proc_ops		*fops;
 	void				*data;
 	/** /proc file mode. */
 	mode_t				 proc_mode;
@@ -522,7 +523,7 @@ static inline int lprocfs_exp_cleanup(struct obd_export *exp)
 #endif
 extern struct proc_dir_entry *
 lprocfs_add_simple(struct proc_dir_entry *root, char *name,
-		   void *data, const struct file_operations *fops);
+		   void *data, const struct proc_ops *ops);
 extern struct proc_dir_entry *
 lprocfs_add_symlink(const char *name, struct proc_dir_entry *parent,
                     const char *format, ...);
@@ -561,12 +562,10 @@ extern const struct file_operations lprocfs_evict_client_fops;
 #endif
 
 extern int lprocfs_seq_create(struct proc_dir_entry *parent, const char *name,
-			      mode_t mode,
-			      const struct file_operations *seq_fops,
+			      mode_t mode, const struct proc_ops *seq_fops,
 			      void *data);
 extern int lprocfs_obd_seq_create(struct obd_device *obd, const char *name,
-				  mode_t mode,
-				  const struct file_operations *seq_fops,
+				  mode_t mode, const struct proc_ops *seq_fops,
 				  void *data);
 
 /* Generic callbacks */
@@ -742,13 +741,13 @@ static int name##_single_open(struct inode *inode, struct file *file)	\
 			   inode->i_private ? inode->i_private :	\
 					      PDE_DATA(inode));		\
 }									\
-static const struct file_operations name##_fops = {			\
-	.owner	 = THIS_MODULE,						\
-	.open	 = name##_single_open,					\
-	.read	 = seq_read,						\
-	.write	 = custom_seq_write,					\
-	.llseek	 = seq_lseek,						\
-	.release = lprocfs_single_release,				\
+static const struct proc_ops name##_fops = {				\
+	PROC_OWNER(THIS_MODULE)						\
+	.proc_open		= name##_single_open,			\
+	.proc_read		= seq_read,				\
+	.proc_write		= custom_seq_write,			\
+	.proc_lseek		= seq_lseek,				\
+	.proc_release		= lprocfs_single_release,		\
 }
 
 #define LPROC_SEQ_FOPS_RO(name)		__LPROC_SEQ_FOPS(name, NULL)
@@ -789,10 +788,10 @@ static const struct file_operations name##_fops = {			\
 				   inode->i_private ? inode->i_private : \
 				   PDE_DATA(inode));			\
 	}								\
-	static const struct file_operations name##_##type##_fops = {	\
-		.open	 = name##_##type##_open,			\
-		.write	 = name##_##type##_write,			\
-		.release = lprocfs_single_release,			\
+	static const struct proc_ops name##_##type##_fops = {		\
+		.proc_open	= name##_##type##_open,			\
+		.proc_write	= name##_##type##_write,		\
+		.proc_release	= lprocfs_single_release,		\
 	};
 
 struct lustre_attr {
