@@ -41,6 +41,8 @@
  * @{
  */
 #define DEBUG_SUBSYSTEM S_RPC
+#include <linux/delay.h>
+
 #include <obd_support.h>
 #include <obd_class.h>
 #include <lustre_net.h>
@@ -378,130 +380,65 @@ static void nrs_orr_genobjname(struct ptlrpc_nrs_policy *policy, char *name)
 /**
  * ORR/TRR hash operations
  */
-#define NRS_ORR_BITS		24
-#define NRS_ORR_BKT_BITS	12
-#define NRS_ORR_HASH_FLAGS	(CFS_HASH_SPIN_BKTLOCK | CFS_HASH_ASSERT_EMPTY)
-
-#define NRS_TRR_BITS		4
-#define NRS_TRR_BKT_BITS	2
-#define NRS_TRR_HASH_FLAGS	CFS_HASH_SPIN_BKTLOCK
-
-static unsigned
-nrs_orr_hop_hash(struct cfs_hash *hs, const void *key, unsigned mask)
+static u32 nrs_orr_hashfn(const void *data, u32 len, u32 seed)
 {
-	return cfs_hash_djb2_hash(key, sizeof(struct nrs_orr_key), mask);
+	const struct nrs_orr_key *key = data;
+
+	seed = cfs_hash_32(seed ^ key->ok_fid.f_oid, 32);
+	seed ^= cfs_hash_64(key->ok_fid.f_seq, 32);
+	return seed;
 }
 
-static void *nrs_orr_hop_key(struct hlist_node *hnode)
+static int nrs_orr_cmpfn(struct rhashtable_compare_arg *arg, const void *obj)
 {
-	struct nrs_orr_object *orro = hlist_entry(hnode,
-						      struct nrs_orr_object,
-						      oo_hnode);
-	return &orro->oo_key;
+	const struct nrs_orr_object *orro = obj;
+	const struct nrs_orr_key *key = arg->key;
+
+	return lu_fid_eq(&orro->oo_key.ok_fid, &key->ok_fid);
 }
 
-static int nrs_orr_hop_keycmp(const void *key, struct hlist_node *hnode)
+static u32 nrs_trr_hashfn(const void *data, u32 len, u32 seed)
 {
-	struct nrs_orr_object *orro = hlist_entry(hnode,
-						      struct nrs_orr_object,
-						      oo_hnode);
+	const struct nrs_orr_key *key = data;
 
-	return lu_fid_eq(&orro->oo_key.ok_fid,
-			 &((struct nrs_orr_key *)key)->ok_fid);
+	return cfs_hash_32(seed ^ key->ok_idx, 32);
 }
 
-static void *nrs_orr_hop_object(struct hlist_node *hnode)
+static int nrs_trr_cmpfn(struct rhashtable_compare_arg *arg, const void *obj)
 {
-	return hlist_entry(hnode, struct nrs_orr_object, oo_hnode);
+	const struct nrs_orr_object *orro = obj;
+	const struct nrs_orr_key *key = arg->key;
+
+	return orro->oo_key.ok_idx == key->ok_idx;
 }
 
-static void nrs_orr_hop_get(struct cfs_hash *hs, struct hlist_node *hnode)
+static void nrs_hash_exit(void *vobj, void *data)
 {
-	struct nrs_orr_object *orro = hlist_entry(hnode,
-						      struct nrs_orr_object,
-						      oo_hnode);
-	orro->oo_ref++;
-}
+	struct nrs_orr_object *orro = vobj;
+	struct nrs_orr_data *orrd = container_of(orro->oo_res.res_parent,
+						 struct nrs_orr_data, od_res);
 
-/**
- * Removes an nrs_orr_object the hash and frees its memory, if the object has
- * no active users.
- */
-static void nrs_orr_hop_put_free(struct cfs_hash *hs, struct hlist_node *hnode)
-{
-	struct nrs_orr_object *orro = hlist_entry(hnode,
-						      struct nrs_orr_object,
-						      oo_hnode);
-	struct nrs_orr_data   *orrd = container_of(orro->oo_res.res_parent,
-						   struct nrs_orr_data, od_res);
-	struct cfs_hash_bd     bd;
-
-	cfs_hash_bd_get_and_lock(hs, &orro->oo_key, &bd, 1);
-
-	if (--orro->oo_ref > 1) {
-		cfs_hash_bd_unlock(hs, &bd, 1);
-
-		return;
-	}
-	LASSERT(orro->oo_ref == 1);
-
-	cfs_hash_bd_del_locked(hs, &bd, hnode);
-	cfs_hash_bd_unlock(hs, &bd, 1);
+	LASSERTF(refcount_read(&orro->oo_ref) == 0,
+		 "Busy NRS TRR policy object for OST with index %u, with %d "
+		 "refs\n", orro->oo_key.ok_idx, refcount_read(&orro->oo_ref));
 
 	OBD_SLAB_FREE_PTR(orro, orrd->od_cache);
 }
 
-static void nrs_orr_hop_put(struct cfs_hash *hs, struct hlist_node *hnode)
-{
-	struct nrs_orr_object *orro = hlist_entry(hnode,
-						      struct nrs_orr_object,
-						      oo_hnode);
-	orro->oo_ref--;
-}
-
-static int nrs_trr_hop_keycmp(const void *key, struct hlist_node *hnode)
-{
-	struct nrs_orr_object *orro = hlist_entry(hnode,
-						      struct nrs_orr_object,
-						      oo_hnode);
-
-	return orro->oo_key.ok_idx == ((struct nrs_orr_key *)key)->ok_idx;
-}
-
-static void nrs_trr_hop_exit(struct cfs_hash *hs, struct hlist_node *hnode)
-{
-	struct nrs_orr_object *orro = hlist_entry(hnode,
-						      struct nrs_orr_object,
-						      oo_hnode);
-	struct nrs_orr_data   *orrd = container_of(orro->oo_res.res_parent,
-						   struct nrs_orr_data, od_res);
-
-	LASSERTF(orro->oo_ref == 0,
-		 "Busy NRS TRR policy object for OST with index %u, with %ld "
-		 "refs\n", orro->oo_key.ok_idx, orro->oo_ref);
-
-	OBD_SLAB_FREE_PTR(orro, orrd->od_cache);
-}
-
-static struct cfs_hash_ops nrs_orr_hash_ops = {
-	.hs_hash	= nrs_orr_hop_hash,
-	.hs_key		= nrs_orr_hop_key,
-	.hs_keycmp	= nrs_orr_hop_keycmp,
-	.hs_object	= nrs_orr_hop_object,
-	.hs_get		= nrs_orr_hop_get,
-	.hs_put		= nrs_orr_hop_put_free,
-	.hs_put_locked	= nrs_orr_hop_put,
+static const struct rhashtable_params nrs_orr_hash_params = {
+	.key_len	= sizeof(struct lu_fid),
+	.key_offset	= offsetof(struct nrs_orr_object, oo_key),
+	.head_offset	= offsetof(struct nrs_orr_object, oo_rhead),
+	.hashfn		= nrs_orr_hashfn,
+	.obj_cmpfn	= nrs_orr_cmpfn,
 };
 
-static struct cfs_hash_ops nrs_trr_hash_ops = {
-	.hs_hash	= nrs_orr_hop_hash,
-	.hs_key		= nrs_orr_hop_key,
-	.hs_keycmp	= nrs_trr_hop_keycmp,
-	.hs_object	= nrs_orr_hop_object,
-	.hs_get		= nrs_orr_hop_get,
-	.hs_put		= nrs_orr_hop_put,
-	.hs_put_locked	= nrs_orr_hop_put,
-	.hs_exit	= nrs_trr_hop_exit,
+static const struct rhashtable_params nrs_trr_hash_params = {
+	.key_len	= sizeof(u32),
+	.key_offset	= offsetof(struct nrs_orr_object, oo_key),
+	.head_offset	= offsetof(struct nrs_orr_object, oo_rhead),
+	.hashfn		= nrs_trr_hashfn,
+	.obj_cmpfn	= nrs_trr_cmpfn,
 };
 
 #define NRS_ORR_QUANTUM_DFLT	256
@@ -616,11 +553,6 @@ static int nrs_orr_init(struct ptlrpc_nrs_policy *policy)
 static int nrs_orr_start(struct ptlrpc_nrs_policy *policy, char *arg)
 {
 	struct nrs_orr_data    *orrd;
-	struct cfs_hash_ops	       *ops;
-	unsigned		cur_bits;
-	unsigned		max_bits;
-	unsigned		bkt_bits;
-	unsigned		flags;
 	int			rc = 0;
 	ENTRY;
 
@@ -649,33 +581,19 @@ static int nrs_orr_start(struct ptlrpc_nrs_policy *policy, char *arg)
 	if (orrd->od_cache == NULL)
 		GOTO(out_binheap, rc = -ENOMEM);
 
-	if (strncmp(policy->pol_desc->pd_name, NRS_POL_NAME_ORR,
-		    NRS_POL_NAME_MAX) == 0) {
-		ops = &nrs_orr_hash_ops;
-		cur_bits = NRS_ORR_BITS;
-		max_bits = NRS_ORR_BITS;
-		bkt_bits = NRS_ORR_BKT_BITS;
-		flags = NRS_ORR_HASH_FLAGS;
-	} else {
-		ops = &nrs_trr_hash_ops;
-		cur_bits = NRS_TRR_BITS;
-		max_bits = NRS_TRR_BITS;
-		bkt_bits = NRS_TRR_BKT_BITS;
-		flags = NRS_TRR_HASH_FLAGS;
-	}
-
 	/**
 	 * Hash for finding objects by struct nrs_orr_key.
-	 * XXX: For TRR, it might be better to avoid using libcfs_hash?
+	 * XXX: For TRR, it might be better to avoid using rhashtable?
 	 * All that needs to be resolved are OST indices, and they
 	 * will stay relatively stable during an OSS node's lifetime.
 	 */
-	orrd->od_obj_hash = cfs_hash_create(orrd->od_objname, cur_bits,
-					    max_bits, bkt_bits, 0,
-					    CFS_HASH_MIN_THETA,
-					    CFS_HASH_MAX_THETA, ops, flags);
-	if (orrd->od_obj_hash == NULL)
-		GOTO(out_cache, rc = -ENOMEM);
+	if (strncmp(policy->pol_desc->pd_name, NRS_POL_NAME_ORR,
+		    NRS_POL_NAME_MAX) == 0)
+		rc = rhashtable_init(&orrd->od_obj_hash, &nrs_orr_hash_params);
+	else
+		rc = rhashtable_init(&orrd->od_obj_hash, &nrs_trr_hash_params);
+	if (rc)
+		GOTO(out_cache, rc);
 
 	/* XXX: Fields accessed unlocked */
 	orrd->od_quantum = NRS_ORR_QUANTUM_DFLT;
@@ -717,12 +635,11 @@ static void nrs_orr_stop(struct ptlrpc_nrs_policy *policy)
 
 	LASSERT(orrd != NULL);
 	LASSERT(orrd->od_binheap != NULL);
-	LASSERT(orrd->od_obj_hash != NULL);
 	LASSERT(orrd->od_cache != NULL);
 	LASSERT(cfs_binheap_is_empty(orrd->od_binheap));
 
 	cfs_binheap_destroy(orrd->od_binheap);
-	cfs_hash_putref(orrd->od_obj_hash);
+	rhashtable_free_and_destroy(&orrd->od_obj_hash, nrs_hash_exit, NULL);
 	kmem_cache_destroy(orrd->od_cache);
 
 	OBD_FREE_PTR(orrd);
@@ -864,9 +781,18 @@ static int nrs_orr_res_get(struct ptlrpc_nrs_policy *policy,
 	if (rc < 0)
 		RETURN(rc);
 
-	orro = cfs_hash_lookup(orrd->od_obj_hash, &key);
-	if (orro != NULL)
-		goto out;
+	if (strncmp(policy->pol_desc->pd_name, NRS_POL_NAME_ORR,
+		    NRS_POL_NAME_MAX) == 0) {
+		orro = rhashtable_lookup_fast(&orrd->od_obj_hash, &key,
+					      nrs_orr_hash_params);
+	} else {
+		orro = rhashtable_lookup_fast(&orrd->od_obj_hash, &key,
+					      nrs_trr_hash_params);
+	}
+	if (orro && !refcount_inc_not_zero(&orro->oo_ref))
+		orro = NULL;
+	if (orro)
+		goto found_orro;
 
 	OBD_SLAB_CPT_ALLOC_PTR_GFP(orro, orrd->od_cache,
 				   nrs_pol2cptab(policy), nrs_pol2cptid(policy),
@@ -875,15 +801,33 @@ static int nrs_orr_res_get(struct ptlrpc_nrs_policy *policy,
 		RETURN(-ENOMEM);
 
 	orro->oo_key = key;
-	orro->oo_ref = 1;
-
-	tmp = cfs_hash_findadd_unique(orrd->od_obj_hash, &orro->oo_key,
-				      &orro->oo_hnode);
-	if (tmp != orro) {
+	refcount_set(&orro->oo_ref, 1);
+try_again:
+	if (strncmp(policy->pol_desc->pd_name, NRS_POL_NAME_ORR,
+		    NRS_POL_NAME_MAX) == 0) {
+		tmp = rhashtable_lookup_get_insert_fast(&orrd->od_obj_hash,
+							&orro->oo_rhead,
+							nrs_orr_hash_params);
+	} else {
+		tmp = rhashtable_lookup_get_insert_fast(&orrd->od_obj_hash,
+							&orro->oo_rhead,
+							nrs_trr_hash_params);
+	}
+	if (tmp) {
+		/* insertion failed */
 		OBD_SLAB_FREE_PTR(orro, orrd->od_cache);
+		if (IS_ERR(tmp)) {
+			/* hash table could be resizing. */
+			if (PTR_ERR(tmp) == -ENOMEM ||
+			    PTR_ERR(tmp) == -EBUSY) {
+				msleep(20);
+				goto try_again;
+			}
+			RETURN(PTR_ERR(tmp));
+		}
 		orro = tmp;
 	}
-out:
+found_orro:
 	/**
 	 * For debugging purposes
 	 */
@@ -916,7 +860,7 @@ static void nrs_orr_res_put(struct ptlrpc_nrs_policy *policy,
 	orro = container_of(res, struct nrs_orr_object, oo_res);
 	orrd = container_of(res->res_parent, struct nrs_orr_data, od_res);
 
-	cfs_hash_put(orrd->od_obj_hash, &orro->oo_hnode);
+	refcount_dec(&orro->oo_ref);
 }
 
 /**

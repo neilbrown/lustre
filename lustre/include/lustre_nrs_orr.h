@@ -107,7 +107,7 @@ struct nrs_orr_key {
 struct nrs_orr_data {
 	struct ptlrpc_nrs_resource	od_res;
 	struct cfs_binheap	       *od_binheap;
-	struct cfs_hash		       *od_obj_hash;
+	struct rhashtable	        od_obj_hash;
 	struct kmem_cache	       *od_cache;
 	/**
 	 * Used when a new scheduling round commences, in order to synchronize
@@ -149,7 +149,7 @@ struct nrs_orr_data {
  */
 struct nrs_orr_object {
 	struct ptlrpc_nrs_resource	oo_res;
-	struct hlist_node		oo_hnode;
+	struct rhash_head		oo_rhead;
 	/**
 	 * The round number against which requests are being scheduled for this
 	 * object or OST
@@ -165,7 +165,7 @@ struct nrs_orr_object {
 	 * scheduling RPCs
 	 */
 	struct nrs_orr_key		oo_key;
-	long				oo_ref;
+	refcount_t			oo_ref;
 	/**
 	 * Round Robin quantum; the maximum number of RPCs that are allowed to
 	 * be scheduled for the object or OST in a single batch of each round.
