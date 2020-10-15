@@ -53,14 +53,11 @@ static void free_dentry_data(struct rcu_head *head)
 /* should NOT be called with the dcache lock, see fs/dcache.c */
 static void ll_release(struct dentry *de)
 {
-        struct ll_dentry_data *lld;
-        ENTRY;
-        LASSERT(de != NULL);
-        lld = ll_d2d(de);
-        if (lld == NULL) /* NFS copies the de->d_op methods (bug 4655) */
-                RETURN_EXIT;
+	struct ll_dentry_data *lld;
+	ENTRY;
+	LASSERT(de != NULL);
+	lld = ll_d2d(de);
 
-	de->d_fsdata = NULL;
 	call_rcu(&lld->lld_rcu_head, free_dentry_data);
 
 	EXIT;
@@ -141,32 +138,17 @@ static int ll_ddelete(const struct dentry *de)
 	RETURN(0);
 }
 
-int ll_d_init(struct dentry *de)
+static int ll_d_init(struct dentry *de)
 {
+	struct ll_dentry_data *lld;
 	ENTRY;
-	LASSERT(de != NULL);
+	LASSERT(de);
 
-	CDEBUG(D_DENTRY, "ldd on dentry %pd (%p) parent %p inode %p refc %d\n",
-	       de, de, de->d_parent, de->d_inode,
-	       ll_d_count(de));
-
-	if (de->d_fsdata == NULL) {
-		struct ll_dentry_data *lld;
-
-		OBD_ALLOC_PTR(lld);
-		if (likely(lld != NULL)) {
-			spin_lock(&de->d_lock);
-			if (likely(de->d_fsdata == NULL)) {
-				de->d_fsdata = lld;
-				__d_lustre_invalidate(de);
-			} else {
-				OBD_FREE_PTR(lld);
-			}
-			spin_unlock(&de->d_lock);
-		} else {
-			RETURN(-ENOMEM);
-		}
-	}
+	OBD_ALLOC_PTR(lld);
+	if (unlikely(!lld))
+		RETURN(-ENOMEM);
+	lld->lld_invalid = 1;
+	de->d_fsdata = lld;
 	LASSERT(de->d_op == &ll_d_ops);
 
 	RETURN(0);
@@ -320,8 +302,9 @@ static int ll_revalidate_dentry(struct dentry *dentry,
 }
 
 const struct dentry_operations ll_d_ops = {
+	.d_init		= ll_d_init,
 	.d_revalidate	= ll_revalidate_dentry,
-        .d_release = ll_release,
-        .d_delete  = ll_ddelete,
-        .d_compare = ll_dcompare,
+	.d_release	= ll_release,
+	.d_delete	= ll_ddelete,
+	.d_compare	= ll_dcompare,
 };

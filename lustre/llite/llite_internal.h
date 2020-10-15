@@ -1163,7 +1163,6 @@ void ll_io_set_mirror(struct cl_io *io, const struct file *file);
 
 /* llite/dcache.c */
 
-int ll_d_init(struct dentry *de);
 extern const struct dentry_operations ll_d_ops;
 void ll_intent_drop_lock(struct lookup_intent *);
 void ll_intent_release(struct lookup_intent *);
@@ -1550,7 +1549,7 @@ dentry_may_statahead(struct inode *dir, struct dentry *dentry)
 	 * 'lld_sa_generation == lli->lli_sa_generation'.
 	 */
 	ldd = ll_d2d(dentry);
-	if (ldd != NULL && lli->lli_sa_generation &&
+	if (lli->lli_sa_generation &&
 	    ldd->lld_sa_generation == lli->lli_sa_generation)
 		return false;
 
@@ -1608,17 +1607,7 @@ static inline void ll_set_lock_data(struct obd_export *exp, struct inode *inode,
 
 static inline int d_lustre_invalid(const struct dentry *dentry)
 {
-	struct ll_dentry_data *lld = ll_d2d(dentry);
-
-	return (lld == NULL) || lld->lld_invalid;
-}
-
-static inline void __d_lustre_invalidate(struct dentry *dentry)
-{
-	struct ll_dentry_data *lld = ll_d2d(dentry);
-
-	if (lld != NULL)
-		lld->lld_invalid = 1;
+	return ll_d2d(dentry)->lld_invalid;
 }
 
 /*
@@ -1634,14 +1623,13 @@ static inline void d_lustre_invalidate(struct dentry *dentry)
 	       dentry->d_parent, dentry->d_inode, ll_d_count(dentry));
 
 	spin_lock(&dentry->d_lock);
-	__d_lustre_invalidate(dentry);
+	ll_d2d(dentry)->lld_invalid = 1;
 	spin_unlock(&dentry->d_lock);
 }
 
 static inline void d_lustre_revalidate(struct dentry *dentry)
 {
 	spin_lock(&dentry->d_lock);
-	LASSERT(ll_d2d(dentry) != NULL);
 	ll_d2d(dentry)->lld_invalid = 0;
 	spin_unlock(&dentry->d_lock);
 }

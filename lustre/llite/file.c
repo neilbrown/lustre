@@ -881,7 +881,7 @@ restart:
 			 *  ll_d_init().
 			 */
 			ldd = ll_d2d(dentry);
-			if (ldd && ldd->lld_nfs_dentry) {
+			if (ldd->lld_nfs_dentry) {
 				ldd->lld_nfs_dentry = 0;
 				if (!filename_is_volatile(dentry->d_name.name,
 							  dentry->d_name.len,

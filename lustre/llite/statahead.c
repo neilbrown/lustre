@@ -1529,9 +1529,7 @@ out:
 	 * dentry_may_statahead().
 	 */
 	ldd = ll_d2d(*dentryp);
-	/* ldd can be NULL if llite lookup failed. */
-	if (ldd)
-		ldd->lld_sa_generation = lli->lli_sa_generation;
+	ldd->lld_sa_generation = lli->lli_sa_generation;
 	sa_put(sai, entry);
 	spin_lock(&lli->lli_sa_lock);
 	if (sai->sai_task)
