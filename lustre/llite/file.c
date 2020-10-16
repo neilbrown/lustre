@@ -4326,20 +4326,15 @@ ll_file_flock(struct file *file, int cmd, struct file_lock *file_lock)
 	CDEBUG(D_VFSTRACE, "VFS Op:inode="DFID" file_lock=%p\n",
 	       PFID(ll_inode2fid(inode)), file_lock);
 
-	if (file_lock->fl_flags & FL_FLOCK) {
+	if (file_lock->fl_flags & FL_FLOCK)
 		LASSERT((cmd == F_SETLKW) || (cmd == F_SETLK));
-		/* flocks are whole-file locks */
-		flock.l_flock.end = OFFSET_MAX;
-		/* For flocks owner is determined by the local file desctiptor*/
-		flock.l_flock.owner = (unsigned long)file_lock->fl_file;
-	} else if (file_lock->fl_flags & FL_POSIX) {
-		flock.l_flock.owner = (unsigned long)file_lock->fl_owner;
-		flock.l_flock.start = file_lock->fl_start;
-		flock.l_flock.end = file_lock->fl_end;
-	} else {
-		RETURN(-EINVAL);
-	}
+	else if ((!file_lock->fl_flags & FL_POSIX))
+		return -EINVAL;
+
+	flock.l_flock.owner = (unsigned long)file_lock->fl_owner;
 	flock.l_flock.pid = file_lock->fl_pid;
+	flock.l_flock.start = file_lock->fl_start;
+	flock.l_flock.end = file_lock->fl_end;
 
 #if defined(HAVE_LM_COMPARE_OWNER) || defined(lm_compare_owner)
 	/* Somewhat ugly workaround for svc lockd.
