@@ -925,6 +925,21 @@ static int vvp_io_commit_sync(const struct lu_env *env, struct cl_io *io,
 }
 
 /*
+ * From kernel v4.19-rc5-248-g9b89a0355144 use XArrary
+ * Prior kernels use radix_tree for tags
+ */
+static inline void ll_page_tag_dirty(struct page *page,
+				     struct address_space *mapping)
+{
+#ifndef HAVE_RADIX_TREE_TAG_SET
+	__xa_set_mark(&mapping->i_pages, page_index(page), PAGECACHE_TAG_DIRTY);
+#else
+	radix_tree_tag_set(&mapping->page_tree, page_index(page),
+			   PAGECACHE_TAG_DIRTY);
+#endif
+}
+
+/*
  * Kernels 4.2 - 4.5 pass memcg argument to account_page_dirtied()
  * Kernel v5.2-5678-gac1c3e4 no longer exports account_page_dirtied
  */
@@ -939,23 +954,18 @@ static inline void ll_account_page_dirtied(struct page *page,
 #elif defined(HAVE_ACCOUNT_PAGE_DIRTIED_EXPORT)
 	account_page_dirtied(page, mapping);
 #else
+	if (!vvp_account_page_dirtied) {
+		/* must use __set_page_dirty, which means unlocking and
+		 * relocking, which hurts performance.
+		 */
+		ll_xa_unlock(&mapping->i_pages);
+		__set_page_dirty(page, mapping, 0);
+		ll_xa_lock(&mapping->i_pages);
+		return;
+	}
 	vvp_account_page_dirtied(page, mapping);
 #endif
-}
-
-/*
- * From kernel v4.19-rc5-248-g9b89a0355144 use XArrary
- * Prior kernels use radix_tree for tags
- */
-static inline void ll_page_tag_dirty(struct page *page,
-				     struct address_space *mapping)
-{
-#ifndef HAVE_RADIX_TREE_TAG_SET
-	__xa_set_mark(&mapping->i_pages, page_index(page), PAGECACHE_TAG_DIRTY);
-#else
-	radix_tree_tag_set(&mapping->page_tree, page_index(page),
-			   PAGECACHE_TAG_DIRTY);
-#endif
+	ll_page_tag_dirty(page, mapping);
 }
 
 /* Taken from kernel set_page_dirty, __set_page_dirty_nobuffers
@@ -1021,7 +1031,6 @@ void vvp_set_pagevec_dirty(struct pagevec *pvec)
 			 page, page->mapping, mapping);
 		WARN_ON_ONCE(!PagePrivate(page) && !PageUptodate(page));
 		ll_account_page_dirtied(page, mapping);
-		ll_page_tag_dirty(page, mapping);
 		dirtied++;
 		unlock_page_memcg(page);
 	}
