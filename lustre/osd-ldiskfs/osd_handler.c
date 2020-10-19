@@ -8323,7 +8323,7 @@ static int __init osd_init(void)
 	if (rc)
 		return rc;
 
-#ifdef CONFIG_KALLSYMS
+#if defined(HAVE_KALLSYMS_LOOKUP_NAME)
 	priv_security_file_alloc =
 		(void *)kallsyms_lookup_name("security_file_alloc");
 #endif
