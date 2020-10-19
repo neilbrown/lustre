@@ -1312,6 +1312,27 @@ nr_unstable_nfs_exists, [
 EXTRA_KCFLAGS="$tmp_flags"
 ]) # LIBCFS_HAVE_NR_UNSTABLE_NFS
 
+#
+# Kernel version v5.3-rc1~182^2~1
+# workqueue: Make alloc/apply/free_workqueue_attrs() static
+#
+AC_DEFUN([LIBCFS_WORKQUEUE_ATTRS], [
+LB_CHECK_EXPORT([apply_workqueue_attrs], [kernel/workqueue.c],
+	[AC_DEFINE(HAVE_APPLY_WORKQUEUE_ATTRS, 1,
+		[apply_workqueue_attrs is exported by the kernel])])
+]) # LIBCFS_WORKQUEUE_ATTRS
+
+#
+# LIBCFS_KALLSYMS_LOOKUP
+#
+# kernel v5.7-rc1~58^2~15
+# kallsyms: unexport kallsyms_lookup_name() and kallsyms_on_each_symbol()
+AC_DEFUN([LIBCFS_KALLSYMS_LOOKUP], [
+LB_CHECK_EXPORT([kallsyms_lookup_name], [kernel/kallsyms.c],
+	[AC_DEFINE(HAVE_KALLSYMS_LOOKUP_NAME, 1,
+		[kallsyms_lookup_name is exported by kernel])])
+]) # LIBCFS_KALLSYMS_LOOKUP
+
 AC_DEFUN([LIBCFS_PROG_LINUX_SRC], [] )
 AC_DEFUN([LIBCFS_PROG_LINUX_RESULTS], [])
 
@@ -1420,6 +1441,10 @@ LIBCFS_LOOKUP_USER_KEY
 LIBCFS_FORCE_SIG_WITH_TASK
 LIBCFS_CACHE_DETAIL_WRITERS
 LIBCFS_HAVE_NR_UNSTABLE_NFS
+# 5.7
+LIBCFS_KALLSYMS_LOOKUP
+# 5.8
+LIBCFS_WORKQUEUE_ATTRS
 ]) # LIBCFS_PROG_LINUX
 
 #

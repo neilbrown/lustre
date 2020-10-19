@@ -109,7 +109,9 @@ static int (*cfs_apply_workqueue_attrs_t)(struct workqueue_struct *wq,
 int cfs_apply_workqueue_attrs(struct workqueue_struct *wq,
 			      const struct workqueue_attrs *attrs)
 {
-	return cfs_apply_workqueue_attrs_t(wq, attrs);
+	if (cfs_apply_workqueue_attrs_t)
+		return cfs_apply_workqueue_attrs_t(wq, attrs);
+	return 0;
 }
 EXPORT_SYMBOL_GPL(cfs_apply_workqueue_attrs);
 
@@ -122,8 +124,10 @@ void __init cfs_arch_init(void)
 #ifndef HAVE_WAIT_VAR_EVENT
 	wait_bit_init();
 #endif
+#if !defined(HAVE_APPLY_WORKQUEUE_ATTRS) && defined(HAVE_KALLSYMS_LOOKUP_NAME)
 	cfs_apply_workqueue_attrs_t =
 		(void *)kallsyms_lookup_name("apply_workqueue_attrs");
+#endif
 #ifndef HAVE_XARRAY_SUPPORT
 	radix_tree_node_cachep =
 		(void *)kallsyms_lookup_name("radix_tree_node_cachep");
