@@ -19,6 +19,10 @@
 #include <crypto/hash.h>
 #include <lustre_disk.h>
 
+#ifndef sizeof_field
+#define sizeof_field(TYPE, MEMBER) sizeof((((TYPE *)0)->MEMBER))
+#endif
+
 #ifndef CRYPTO_TFM_REQ_FORBID_WEAK_KEYS
 #define CRYPTO_TFM_REQ_FORBID_WEAK_KEYS CRYPTO_TFM_REQ_WEAK_KEY
 #endif
