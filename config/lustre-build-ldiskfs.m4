@@ -103,7 +103,7 @@ AS_IF([test -z "$LDISKFS_SERIES"],
 	      [LDISKFS_SERIES="5.9.0-ml.series"],  # gt
 	    )]
 	  )]
-		)])
+	)])
 	],
 [])
 AS_IF([test -z "$LDISKFS_SERIES"],
