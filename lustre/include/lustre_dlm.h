@@ -685,7 +685,7 @@ struct ldlm_cb_async_args {
  * Interval tree for extent locks.
  * The interval tree must be accessed under the resource lock.
  * Interval trees are used for granted extent locks to speed up conflicts
- * lookup. See ldlm/interval_tree.c for more details.
+ * lookup.
  */
 struct ldlm_interval_tree {
 	/** Tree size. */
