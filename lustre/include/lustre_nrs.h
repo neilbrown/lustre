@@ -682,10 +682,12 @@ struct cfs_binheap_node {
 	/** Index into the binary tree */
 	unsigned int	chn_index;
 };
+#ifdef HAVE_SERVER_SUPPORT
 #include <lustre_nrs_tbf.h>
 #include <lustre_nrs_crr.h>
 #include <lustre_nrs_orr.h>
 #include <lustre_nrs_delay.h>
+#endif /* HAVE_SERVER_SUPPORT */
 
 /**
  * NRS request
@@ -724,6 +726,7 @@ struct ptlrpc_nrs_request {
 		 * Fields for the FIFO policy
 		 */
 		struct nrs_fifo_req	fifo;
+#ifdef HAVE_SERVER_SUPPORT
 		/**
 		 * CRR-N request defintion
 		 */
@@ -738,6 +741,7 @@ struct ptlrpc_nrs_request {
 		 * Fields for the delay policy
 		 */
 		struct nrs_delay_req	delay;
+#endif /* HAVE_SERVER_SUPPORT */
 	} nr_u;
 	/**
 	 * Externally-registering policies may want to use this to allocate
