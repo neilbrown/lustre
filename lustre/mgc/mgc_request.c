@@ -758,6 +758,7 @@ static void mgc_requeue_add(struct config_llog_data *cld)
 	EXIT;
 }
 
+#ifdef HAVE_SERVER_SUPPORT
 /********************** class fns **********************/
 static int mgc_local_llog_init(const struct lu_env *env,
 			       struct obd_device *obd,
@@ -883,6 +884,7 @@ static int mgc_fs_cleanup(const struct lu_env *env, struct obd_device *obd)
 
 	RETURN(0);
 }
+#endif /* HAVE_SERVER_SUPPORT */
 
 static int mgc_llog_init(const struct lu_env *env, struct obd_device *obd)
 {
@@ -1225,8 +1227,8 @@ static int mgc_set_info_async(const struct lu_env *env, struct obd_export *exp,
 			      u32 vallen, void *val,
 			      struct ptlrpc_request_set *set)
 {
-        int rc = -EINVAL;
-        ENTRY;
+	int rc = -EINVAL;
+	ENTRY;
 
 	/* Turn off initial_recov after we try all backup servers once */
 	if (KEY_IS(KEY_INIT_RECOV_BACKUP)) {
@@ -1250,17 +1252,19 @@ static int mgc_set_info_async(const struct lu_env *env, struct obd_export *exp,
 		RETURN(0);
 	}
 
-        /* FIXME move this to mgc_process_config */
-        if (KEY_IS(KEY_REGISTER_TARGET)) {
-                struct mgs_target_info *mti;
-                if (vallen != sizeof(struct mgs_target_info))
-                        RETURN(-EINVAL);
-                mti = (struct mgs_target_info *)val;
-                CDEBUG(D_MGC, "register_target %s %#x\n",
-                       mti->mti_svname, mti->mti_flags);
-                rc =  mgc_target_register(exp, mti);
-                RETURN(rc);
-        }
+#ifdef HAVE_SERVER_SUPPORT
+	/* FIXME move this to mgc_process_config */
+	if (KEY_IS(KEY_REGISTER_TARGET)) {
+		struct mgs_target_info *mti;
+		if (vallen != sizeof(struct mgs_target_info))
+			RETURN(-EINVAL);
+		mti = (struct mgs_target_info *)val;
+		CDEBUG(D_MGC, "register_target %s %#x\n",
+		       mti->mti_svname, mti->mti_flags);
+		rc =  mgc_target_register(exp, mti);
+		RETURN(rc);
+	}
+
 	if (KEY_IS(KEY_SET_FS)) {
 		struct super_block *sb = (struct super_block *)val;
 
@@ -1276,51 +1280,52 @@ static int mgc_set_info_async(const struct lu_env *env, struct obd_export *exp,
 		rc = mgc_fs_cleanup(env, exp->exp_obd);
 		RETURN(rc);
 	}
-        if (KEY_IS(KEY_MGSSEC)) {
-                struct client_obd     *cli = &exp->exp_obd->u.cli;
-                struct sptlrpc_flavor  flvr;
+#endif
+	if (KEY_IS(KEY_MGSSEC)) {
+		struct client_obd     *cli = &exp->exp_obd->u.cli;
+		struct sptlrpc_flavor  flvr;
 
-                /*
-                 * empty string means using current flavor, if which haven't
-                 * been set yet, set it as null.
-                 *
-                 * if flavor has been set previously, check the asking flavor
-                 * must match the existing one.
-                 */
-                if (vallen == 0) {
-                        if (cli->cl_flvr_mgc.sf_rpc != SPTLRPC_FLVR_INVALID)
-                                RETURN(0);
-                        val = "null";
-                        vallen = 4;
-                }
+		/*
+		 * empty string means using current flavor, if which haven't
+		 * been set yet, set it as null.
+		 *
+		 * if flavor has been set previously, check the asking flavor
+		 * must match the existing one.
+		 */
+		if (vallen == 0) {
+			if (cli->cl_flvr_mgc.sf_rpc != SPTLRPC_FLVR_INVALID)
+				RETURN(0);
+			val = "null";
+			vallen = 4;
+		}
 
-                rc = sptlrpc_parse_flavor(val, &flvr);
-                if (rc) {
-                        CERROR("invalid sptlrpc flavor %s to MGS\n",
-                               (char *) val);
-                        RETURN(rc);
-                }
+		rc = sptlrpc_parse_flavor(val, &flvr);
+		if (rc) {
+			CERROR("invalid sptlrpc flavor %s to MGS\n",
+			       (char *) val);
+			RETURN(rc);
+		}
 
-                /*
-                 * caller already hold a mutex
-                 */
-                if (cli->cl_flvr_mgc.sf_rpc == SPTLRPC_FLVR_INVALID) {
-                        cli->cl_flvr_mgc = flvr;
-                } else if (memcmp(&cli->cl_flvr_mgc, &flvr,
-                                  sizeof(flvr)) != 0) {
-                        char    str[20];
+		/*
+		 * caller already hold a mutex
+		 */
+		if (cli->cl_flvr_mgc.sf_rpc == SPTLRPC_FLVR_INVALID) {
+			cli->cl_flvr_mgc = flvr;
+		} else if (memcmp(&cli->cl_flvr_mgc, &flvr,
+				  sizeof(flvr)) != 0) {
+			char    str[20];
 
-                        sptlrpc_flavor2name(&cli->cl_flvr_mgc,
-                                            str, sizeof(str));
-                        LCONSOLE_ERROR("asking sptlrpc flavor %s to MGS but "
-                                       "currently %s is in use\n",
-                                       (char *) val, str);
-                        rc = -EPERM;
-                }
-                RETURN(rc);
-        }
+			sptlrpc_flavor2name(&cli->cl_flvr_mgc,
+					    str, sizeof(str));
+			LCONSOLE_ERROR("asking sptlrpc flavor %s to MGS but "
+				"currently %s is in use\n",
+				(char *) val, str);
+			rc = -EPERM;
+		}
+		RETURN(rc);
+	}
 
-        RETURN(rc);
+	RETURN(rc);
 }
 
 static int mgc_get_info(const struct lu_env *env, struct obd_export *exp,

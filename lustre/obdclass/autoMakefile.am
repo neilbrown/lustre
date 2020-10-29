@@ -3,7 +3,9 @@ if MODULES
 if LINUX
 modulefs_DATA = obdclass$(KMODEXT)
 if TESTS
+if SERVER
 modulefs_DATA += llog_test$(KMODEXT)
+endif # SERVER
 endif # TESTS
 endif # LINUX
 
