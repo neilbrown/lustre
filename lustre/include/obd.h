@@ -46,6 +46,7 @@
 #ifdef HAVE_SERVER_SUPPORT
 # include <lu_target.h>
 # include <obd_target.h>
+# include <lustre_quota.h>
 #endif
 #include <lu_ref.h>
 #include <lustre_export.h>
@@ -54,7 +55,6 @@
 #include <lustre_handles.h>
 #include <lustre_intent.h>
 #include <lvfs.h>
-#include <lustre_quota.h>
 
 #define MAX_OBD_DEVICES 8192
 

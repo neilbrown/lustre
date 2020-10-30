@@ -117,6 +117,7 @@ int llog_handle_put(const struct lu_env *env, struct llog_handle *loghandle)
 	return rc;
 }
 
+#ifdef HAVE_SERVER_SUPPORT
 static int llog_declare_destroy(const struct lu_env *env,
 				struct llog_handle *handle,
 				struct thandle *th)
@@ -334,6 +335,7 @@ int llog_cancel_rec(const struct lu_env *env, struct llog_handle *loghandle,
 {
 	return llog_cancel_arr_rec(env, loghandle, 1, &index);
 }
+#endif /* HAVE_SERVER_SUPPORT */
 
 int llog_read_header(const struct lu_env *env, struct llog_handle *handle,
 		     const struct obd_uuid *uuid)
@@ -460,7 +462,9 @@ static int llog_process_thread(void *arg)
 	struct llog_handle		*loghandle = lpi->lpi_loghandle;
 	struct llog_log_hdr		*llh = loghandle->lgh_hdr;
 	struct llog_process_cat_data	*cd  = lpi->lpi_catdata;
+#ifdef HAVE_SERVER_SUPPORT
 	struct llog_thread_info		*lti;
+#endif
 	char				*buf;
 	size_t				 chunk_size;
 	__u64				 cur_offset;
@@ -474,7 +478,9 @@ static int llog_process_thread(void *arg)
 	if (llh == NULL)
 		RETURN(-EINVAL);
 
+#ifdef HAVE_SERVER_SUPPORT
 	lti = lpi->lpi_env == NULL ? NULL : llog_info(lpi->lpi_env);
+#endif
 
 	cur_offset = chunk_size = llh->llh_hdr.lrh_len;
 	/* expect chunk_size to be power of two */
@@ -648,10 +654,11 @@ repeat:
 
 			/* if set, process the callback on this record */
 			if (test_bit_le(index, LLOG_HDR_BITMAP(llh))) {
+#ifdef HAVE_SERVER_SUPPORT
 				struct llog_cookie *lgc;
 				__u64	tmp_off;
 				int	tmp_idx;
-
+#endif
 				CDEBUG((llh->llh_flags & LLOG_F_IS_CAT ?
 					D_HA : D_OTHER),
 				       "index: %d, lh_last_idx: %d "
@@ -659,6 +666,7 @@ repeat:
 				       index, lh_last_idx, synced_idx,
 				       loghandle->lgh_last_idx);
 
+#ifdef HAVE_SERVER_SUPPORT
 				if (lti != NULL) {
 					lgc = &lti->lgi_cookie;
 					/* store lu_env for recursive calls */
@@ -669,17 +677,18 @@ repeat:
 						(char *)buf + chunk_offset;
 					lgc->lgc_index = rec->lrh_index;
 				}
+#endif
 				/* using lu_env for passing record offset to
 				 * llog_write through various callbacks */
 				rc = lpi->lpi_cb(lpi->lpi_env, loghandle, rec,
 						 lpi->lpi_cbdata);
 				last_called_index = index;
 
+#ifdef HAVE_SERVER_SUPPORT
 				if (lti != NULL) {
 					lgc->lgc_offset = tmp_off;
 					lgc->lgc_index = tmp_idx;
 				}
-
 				if (rc == LLOG_PROC_BREAK) {
 					GOTO(out, rc);
 				} else if (rc == LLOG_DEL_RECORD) {
@@ -687,6 +696,7 @@ repeat:
 							     loghandle,
 							     rec->lrh_index);
 				}
+#endif
 				if (rc)
 					GOTO(out, rc);
 				/* some stupid callbacks directly cancel records
@@ -711,7 +721,7 @@ out:
 
 	if (cd != NULL)
 		cd->lpcd_last_idx = last_called_index;
-
+#ifdef HAVE_SERVER_SUPPORT
 	if (unlikely(rc == -EIO && loghandle->lgh_obj != NULL)) {
 		if (dt_object_remote(loghandle->lgh_obj)) {
 			/* If it is remote object, then -EIO might means
@@ -745,7 +755,7 @@ out:
 			rc = 0;
 		}
 	}
-
+#endif
 	OBD_FREE_LARGE(buf, chunk_size);
 	lpi->lpi_rc = rc;
 	return 0;
@@ -877,6 +887,7 @@ static inline void llog_restore_resource(const struct cred *old_cred)
 		revert_creds(old_cred);
 }
 
+#ifdef HAVE_SERVER_SUPPORT
 int llog_reverse_process(const struct lu_env *env,
 			 struct llog_handle *loghandle, llog_cb_t cb,
 			 void *data, void *catdata)
@@ -1289,6 +1300,7 @@ out_trans:
 	RETURN(rc);
 }
 EXPORT_SYMBOL(llog_write);
+#endif /* HAVE_SERVER_SUPPORT */
 
 int llog_open(const struct lu_env *env, struct llog_ctxt *ctxt,
 	      struct llog_handle **lgh, struct llog_logid *logid,
@@ -1330,6 +1342,7 @@ int llog_close(const struct lu_env *env, struct llog_handle *loghandle)
 }
 EXPORT_SYMBOL(llog_close);
 
+#ifdef HAVE_SERVER_SUPPORT
 /**
  * Helper function to get the llog size in records. It is used by MGS
  * mostly to check that config llog exists and contains data.
@@ -1459,4 +1472,5 @@ __u64 llog_size(const struct lu_env *env, struct llog_handle *llh)
 	return la.la_size;
 }
 EXPORT_SYMBOL(llog_size);
+#endif /* HAVE_SERVER_SUPPORT */
 

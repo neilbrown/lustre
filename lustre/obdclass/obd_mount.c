@@ -683,6 +683,7 @@ int lustre_put_lsi(struct super_block *sb)
 
 	CDEBUG(D_MOUNT, "put %p %d\n", sb, atomic_read(&lsi->lsi_mounts));
 	if (atomic_dec_and_test(&lsi->lsi_mounts)) {
+#ifdef HAVE_SERVER_SUPPORT
 		if (IS_SERVER(lsi) && lsi->lsi_osd_exp) {
 			lu_device_put(&lsi->lsi_dt_dev->dd_lu_dev);
 			lsi->lsi_osd_exp->exp_obd->obd_lvfs_ctxt.dt = NULL;
@@ -691,6 +692,7 @@ int lustre_put_lsi(struct super_block *sb)
 			/* wait till OSD is gone */
 			obd_zombie_barrier();
 		}
+#endif
 		lustre_free_lsi(sb);
 		RETURN(1);
 	}

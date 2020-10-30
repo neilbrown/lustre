@@ -46,12 +46,13 @@ struct llog_process_info {
 	struct task_struct      *lpi_reftask;
 };
 
+#ifdef HAVE_SERVER_SUPPORT
 struct llog_thread_info {
-	struct lu_attr			 lgi_attr;
 	struct lu_fid			 lgi_fid;
-	struct dt_object_format		 lgi_dof;
 	struct lu_buf			 lgi_buf;
 	loff_t				 lgi_off;
+	struct lu_attr			 lgi_attr;
+	struct dt_object_format		 lgi_dof;
 	struct llog_logid_rec		 lgi_logid;
 	struct dt_insert_rec		 lgi_dt_rec;
 	struct lu_seq_range		 lgi_range;
@@ -59,6 +60,7 @@ struct llog_thread_info {
 	struct obd_statfs		 lgi_statfs;
 	char				 lgi_name[32];
 };
+#endif /* HAVE_SERVER_SUPPORT */
 
 extern struct lu_context_key llog_thread_key;
 

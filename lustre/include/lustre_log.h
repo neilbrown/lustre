@@ -52,9 +52,11 @@
  */
 
 #include <obd_class.h>
-#include <dt_object.h>
 #include <uapi/linux/lustre/lustre_idl.h>
+#ifdef HAVE_SERVER_SUPPORT
+#include <dt_object.h>
 #include <uapi/linux/lustre/lustre_log_user.h>
+#endif
 
 #define LOG_NAME_LIMIT(logname, name)                   \
         snprintf(logname, sizeof(logname), "LOGS/%s", name)

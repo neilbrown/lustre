@@ -224,7 +224,12 @@ static int chlg_read_cat_process_cb(const struct lu_env *env,
 		CERROR("%s: not a changelog rec %x/%d in llog "DFID" rc = %d\n",
 		       crs->crs_obd->obd_name, rec->cr_hdr.lrh_type,
 		       rec->cr.cr_type,
-		       PFID(lu_object_fid(&llh->lgh_obj->do_lu)), rc);
+#ifdef HAVE_SERVER_SUPPORT
+		       PFID(lu_object_fid(&llh->lgh_obj->do_lu)),
+#else
+		       0ULL,0,0,
+#endif
+		       rc);
 		RETURN(rc);
 	}
 

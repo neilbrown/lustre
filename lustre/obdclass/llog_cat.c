@@ -49,7 +49,7 @@
 
 #include "llog_internal.h"
 
-
+#ifdef HAVE_SERVER_SUPPORT
 /**
  * lockdep markers for nested struct llog_handle::lgh_lock locking.
  */
@@ -359,6 +359,7 @@ out:
 	}
 	return rc;
 }
+#endif /* HAVE_SERVER_SUPPORT */
 
 /* Open an existent log handle and add it to the open list.
  * This log handle will be closed when all of the records in it are removed.
@@ -449,15 +450,16 @@ int llog_cat_close(const struct lu_env *env, struct llog_handle *cathandle)
 
 	list_for_each_entry_safe(loghandle, n, &cathandle->u.chd.chd_head,
 				 u.phd.phd_entry) {
-		struct llog_log_hdr	*llh = loghandle->lgh_hdr;
-		int			 index;
 
 		/* unlink open-not-created llogs */
 		list_del_init(&loghandle->u.phd.phd_entry);
-		llh = loghandle->lgh_hdr;
-		if (loghandle->lgh_obj != NULL && llh != NULL &&
-		    (llh->llh_flags & LLOG_F_ZAP_WHEN_EMPTY) &&
-		    (llh->llh_count == 1)) {
+#ifdef HAVE_SERVER_SUPPORT
+		if (loghandle->lgh_obj != NULL &&
+		    loghandle->lgh_hdr != NULL &&
+		    loghandle->lgh_hdr->llh_flags & LLOG_F_ZAP_WHEN_EMPTY &&
+		    loghandle->lgh_hdr->llh_count == 1) {
+			int index;
+
 			rc = llog_destroy(env, loghandle);
 			if (rc)
 				CERROR("%s: failure destroying log during "
@@ -468,6 +470,7 @@ int llog_cat_close(const struct lu_env *env, struct llog_handle *cathandle)
 			index = loghandle->u.phd.phd_cookie.lgc_index;
 			llog_cat_cleanup(env, cathandle, NULL, index);
 		}
+#endif /* HAVE_SERVER_SUPPORT */
 		llog_close(env, loghandle);
 	}
 	/* if handle was stored in ctxt, remove it too */
@@ -478,6 +481,7 @@ int llog_cat_close(const struct lu_env *env, struct llog_handle *cathandle)
 }
 EXPORT_SYMBOL(llog_cat_close);
 
+#ifdef HAVE_SERVER_SUPPORT
 /** Return the currently active log handle.  If the current log handle doesn't
  * have enough space left for the current record, start a new one.
  *
@@ -795,6 +799,7 @@ int llog_cat_cancel_records(const struct lu_env *env,
 	RETURN(rc);
 }
 EXPORT_SYMBOL(llog_cat_cancel_records);
+#endif /* HAVE_SERVER_SUPPORT */
 
 static int llog_cat_process_common(const struct lu_env *env,
 				   struct llog_handle *cat_llh,
@@ -802,7 +807,9 @@ static int llog_cat_process_common(const struct lu_env *env,
 				   struct llog_handle **llhp)
 {
 	struct llog_logid_rec *lir = container_of(rec, typeof(*lir), lid_hdr);
+#ifdef HAVE_SERVER_SUPPORT
 	struct llog_log_hdr *hdr;
+#endif
 	int rc;
 
 	ENTRY;
@@ -836,6 +843,7 @@ static int llog_cat_process_common(const struct lu_env *env,
 		RETURN(rc);
 	}
 
+#ifdef HAVE_SERVER_SUPPORT
 	/* clean old empty llogs, do not consider current llog in use */
 	/* ignore remote (lgh_obj == NULL) llogs */
 	hdr = (*llhp)->lgh_hdr;
@@ -849,6 +857,7 @@ static int llog_cat_process_common(const struct lu_env *env,
 			      PFID(&lir->lid_id.lgl_oi.oi_fid), rc);
 		rc = LLOG_DEL_PLAIN;
 	}
+#endif
 
 	RETURN(rc);
 }
@@ -884,10 +893,12 @@ static int llog_cat_process_cb(const struct lu_env *env,
 	}
 
 out:
+#ifdef HAVE_SERVER_SUPPORT
 	/* The empty plain log was destroyed while processing */
 	if (rc == LLOG_DEL_PLAIN || rc == LLOG_DEL_RECORD)
 		/* clear wrong catalog entry */
 		rc = llog_cat_cleanup(env, cat_llh, llh, rec->lrh_index);
+#endif
 
 	if (llh)
 		llog_handle_put(env, llh);
@@ -966,6 +977,7 @@ int llog_cat_process(const struct lu_env *env, struct llog_handle *cat_llh,
 }
 EXPORT_SYMBOL(llog_cat_process);
 
+#ifdef HAVE_SERVER_SUPPORT
 static int llog_cat_size_cb(const struct lu_env *env,
 			     struct llog_handle *cat_llh,
 			     struct llog_rec_hdr *rec, void *data)
@@ -1010,6 +1022,7 @@ __u64 llog_cat_size(const struct lu_env *env, struct llog_handle *cat_llh)
 	return size;
 }
 EXPORT_SYMBOL(llog_cat_size);
+#endif
 
 /* currently returns the number of "free" entries in catalog,
  * ie the available entries for a new plain LLOG file creation,
@@ -1033,6 +1046,7 @@ __u32 llog_cat_free_space(struct llog_handle *cat_llh)
 }
 EXPORT_SYMBOL(llog_cat_free_space);
 
+#ifdef HAVE_SERVER_SUPPORT
 static int llog_cat_reverse_process_cb(const struct lu_env *env,
 				       struct llog_handle *cat_llh,
 				       struct llog_rec_hdr *rec, void *data)
@@ -1186,3 +1200,4 @@ int llog_cat_cleanup(const struct lu_env *env, struct llog_handle *cathandle,
 		       PFID(&cathandle->lgh_id.lgl_oi.oi_fid));
 	return rc;
 }
+#endif /* HAVE_SERVER_SUPPORT */

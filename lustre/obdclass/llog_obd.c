@@ -218,6 +218,7 @@ int llog_setup(const struct lu_env *env, struct obd_device *obd,
 }
 EXPORT_SYMBOL(llog_setup);
 
+#ifdef HAVE_SERVER_SUPPORT
 int llog_sync(struct llog_ctxt *ctxt, struct obd_export *exp, int flags)
 {
 	int rc = 0;
@@ -247,3 +248,4 @@ void llog_info_fini(void)
 {
 	lu_context_key_degister(&llog_thread_key);
 }
+#endif /* HAVE_SERVER_SUPPORT */

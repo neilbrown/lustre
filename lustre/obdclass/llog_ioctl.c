@@ -269,6 +269,7 @@ static int llog_print_cb(const struct lu_env *env, struct llog_handle *handle,
 
 	RETURN(0);
 }
+
 static int llog_remove_log(const struct lu_env *env, struct llog_handle *cat,
 			   struct llog_logid *logid)
 {

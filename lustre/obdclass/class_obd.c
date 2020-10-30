@@ -726,14 +726,10 @@ static int __init obdclass_init(void)
 	err = lu_ucred_global_init();
 	if (err != 0)
 		goto cleanup_dt_global;
-#endif /* HAVE_SERVER_SUPPORT */
 
 	err = llog_info_init();
 	if (err)
-#ifdef HAVE_SERVER_SUPPORT
 		goto cleanup_lu_ucred_global;
-#else /* !HAVE_SERVER_SUPPORT */
-		goto cleanup_cl_global;
 #endif /* HAVE_SERVER_SUPPORT */
 
 	err = lustre_register_fs();
@@ -748,14 +744,18 @@ static int __init obdclass_init(void)
 	}
 
 	if (err)
+#ifdef HAVE_SERVER_SUPPORT
 		goto cleanup_llog_info;
+#else
+		goto cleanup_cl_global;
+#endif
 
 	return 0;
 
+#ifdef HAVE_SERVER_SUPPORT
 cleanup_llog_info:
 	llog_info_fini();
 
-#ifdef HAVE_SERVER_SUPPORT
 cleanup_lu_ucred_global:
 	lu_ucred_global_fini();
 
@@ -830,8 +830,8 @@ static void __exit obdclass_exit(void)
 	lustre_unregister_fs();
 
 	misc_deregister(&obd_psdev);
-	llog_info_fini();
 #ifdef HAVE_SERVER_SUPPORT
+	llog_info_fini();
 	lu_ucred_global_fini();
 	dt_global_fini();
 #endif /* HAVE_SERVER_SUPPORT */

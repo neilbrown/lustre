@@ -40,7 +40,9 @@
 
 
 #include <lustre_log.h>
+#ifdef HAVE_SERVER_SUPPORT
 #include <lustre_update.h>
+#endif
 
 static void print_llogd_body(struct llogd_body *d)
 {
@@ -299,6 +301,7 @@ void lustre_swab_llog_rec(struct llog_rec_hdr *rec)
 	}
 	case LLOG_PAD_MAGIC:
 		break;
+#ifdef HAVE_SERVER_SUPPORT
 	case UPDATE_REC:
 	{
 		struct llog_update_record *lur =
@@ -318,6 +321,7 @@ void lustre_swab_llog_rec(struct llog_rec_hdr *rec)
 						update_records_size(record));
 		break;
 	}
+#endif /* HAVE_SERVER_SUPPORT */
 	default:
 		CERROR("Unknown llog rec type %#x swabbing rec %p\n",
 			rec->lrh_type, rec);

@@ -42,7 +42,7 @@
 #include <linux/random.h>
 
 #ifdef HAVE_SERVER_SUPPORT
-#include <dt_object.h>
+#include <lustre_barrier.h>
 #include <lustre_nodemap.h>
 #endif
 #include <lprocfs_status.h>
@@ -51,7 +51,6 @@
 #include <lustre_log.h>
 #include <lustre_swab.h>
 #include <obd_class.h>
-#include <lustre_barrier.h>
 
 #include "mgc_internal.h"
 
@@ -1860,6 +1859,7 @@ out:
 	return rc;
 }
 
+#ifdef HAVE_SERVER_SUPPORT
 static int mgc_barrier_glimpse_ast(struct ldlm_lock *lock, void *data)
 {
 	struct config_llog_data *cld = lock->l_ast_data;
@@ -1917,13 +1917,13 @@ out:
 	OBD_FREE(temp_log, strlen(logname) + 2);
 	return rc;
 }
+#endif /* HAVE_SERVER_SUPPORT */
 
 /* local_only means it cannot get remote llogs */
 static int mgc_process_cfg_log(struct obd_device *mgc,
 			       struct config_llog_data *cld, int local_only)
 {
 	struct llog_ctxt	*ctxt, *lctxt = NULL;
-	struct client_obd	*cli = &mgc->u.cli;
 	struct lustre_sb_info	*lsi = NULL;
 	int			 rc = 0;
 	struct lu_env		*env;
@@ -1949,11 +1949,12 @@ static int mgc_process_cfg_log(struct obd_device *mgc,
 
 	lctxt = llog_get_context(mgc, LLOG_CONFIG_ORIG_CTXT);
 
+#ifdef HAVE_SERVER_SUPPORT
 	/* Copy the setup log locally if we can. Don't mess around if we're
 	 * running an MGS though (logs are already local). */
 	if (lctxt && lsi && IS_SERVER(lsi) && !IS_MGS(lsi) &&
-	    cli->cl_mgc_configs_dir != NULL &&
-	    lu2dt_dev(cli->cl_mgc_configs_dir->do_lu.lo_dev) ==
+	    mgc->u.cli.cl_mgc_configs_dir != NULL &&
+	    lu2dt_dev(mgc->u.cli.cl_mgc_configs_dir->do_lu.lo_dev) ==
 	    lsi->lsi_dt_dev) {
 		if (!local_only && !lsi->lsi_dt_dev->dd_rdonly)
 			/* Only try to copy log if we have the lock. */
@@ -1978,12 +1979,15 @@ static int mgc_process_cfg_log(struct obd_device *mgc,
 		llog_ctxt_put(ctxt);
 		ctxt = lctxt;
 		lctxt = NULL;
-	} else {
+	} else
+#endif /* HAVE_SERVER_SUPPORT */
+	{
 		if (local_only) /* no local log at client side */
 			GOTO(out_pop, rc = -EIO);
 	}
 
 	rc = -EAGAIN;
+#ifdef HAVE_SERVER_SUPPORT
 	if (lsi && IS_SERVER(lsi) && !IS_MGS(lsi) &&
 	    lsi->lsi_dt_dev->dd_rdonly) {
 		struct llog_ctxt *rctxt;
@@ -1997,7 +2001,7 @@ static int mgc_process_cfg_log(struct obd_device *mgc,
 					     &cld->cld_cfg);
 		llog_ctxt_put(rctxt);
 	}
-
+#endif
 	if (rc && rc != -ENOENT)
 		rc = class_config_parse_llog(env, ctxt, cld->cld_logname,
 					     &cld->cld_cfg);
@@ -2093,7 +2097,10 @@ restart:
 	/* Get the cfg lock on the llog */
 	rcl = mgc_enqueue(mgc->u.cli.cl_mgc_mgsexp, LDLM_PLAIN, NULL,
 			  LCK_CR, &flags,
-			  cld_is_barrier(cld) ? mgc_barrier_glimpse_ast : NULL,
+#ifdef HAVE_SERVER_SUPPORT
+			  cld_is_barrier(cld) ? mgc_barrier_glimpse_ast :
+#endif
+			  NULL,
 			  cld, 0, NULL, &lockh);
 	if (rcl == 0) {
 		/* Get the cld, it will be released in mgc_blocking_ast. */
