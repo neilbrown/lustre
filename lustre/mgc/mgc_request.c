@@ -41,12 +41,14 @@
 #include <linux/kthread.h>
 #include <linux/random.h>
 
+#ifdef HAVE_SERVER_SUPPORT
 #include <dt_object.h>
+#include <lustre_nodemap.h>
+#endif
 #include <lprocfs_status.h>
 #include <lustre_dlm.h>
 #include <lustre_disk.h>
 #include <lustre_log.h>
-#include <lustre_nodemap.h>
 #include <lustre_swab.h>
 #include <obd_class.h>
 #include <lustre_barrier.h>
@@ -359,6 +361,7 @@ config_log_add(struct obd_device *obd, char *logname,
 		}
 	}
 
+#ifdef HAVE_SERVER_SUPPORT
 	if (!IS_MGS(lsi) && cfg->cfg_sub_clds & CONFIG_SUB_NODEMAP) {
 		nodemap_cld = config_log_find_or_add(obd, LUSTRE_NODEMAP_NAME,
 						     NULL, CONFIG_T_NODEMAP,
@@ -370,6 +373,7 @@ config_log_add(struct obd_device *obd, char *logname,
 			GOTO(out_sptlrpc, rc);
 		}
 	}
+#endif
 
 	if (cfg->cfg_sub_clds & CONFIG_SUB_PARAMS) {
 		params_cld = config_log_find_or_add(obd, PARAMS_FILENAME, sb,
@@ -451,8 +455,10 @@ out_params:
 #endif
 	config_log_put(params_cld);
 out_nodemap:
+#ifdef HAVE_SERVER_SUPPORT
 	config_log_put(nodemap_cld);
 out_sptlrpc:
+#endif
 	config_log_put(sptlrpc_cld);
 
 	return ERR_PTR(rc);
@@ -1640,8 +1646,9 @@ static int mgc_process_recover_nodemap_log(struct obd_device *obd,
 	struct config_llog_instance *cfg = &cld->cld_cfg;
 	struct mgs_config_body *body;
 	struct mgs_config_res *res;
+#ifdef HAVE_SERVER_SUPPORT
 	struct nodemap_config *new_config = NULL;
-	struct lu_nodemap *recent_nodemap = NULL;
+#endif
 	struct ptlrpc_bulk_desc *desc;
 	struct page **pages = NULL;
 	__u64 config_read_offset = 0;
@@ -1793,10 +1800,13 @@ again:
 		union lu_page	*ptr;
 
 		ptr = kmap(pages[i]);
-		if (cld_is_nodemap(cld))
+#ifdef HAVE_SERVER_SUPPORT
+		if (cld_is_nodemap(cld)) {
+			struct lu_nodemap *recent_nodemap = NULL;
 			rc2 = nodemap_process_idx_pages(new_config, ptr,
 						       &recent_nodemap);
-		else
+		} else
+#endif
 			rc2 = mgc_apply_recover_logs(obd, cld, res->mcr_offset,
 						     ptr,
 						     min_t(int, ealen,
