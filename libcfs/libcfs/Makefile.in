@@ -16,7 +16,6 @@ libcfs-crypto-objs := $(addprefix crypto/,$(libcfs-crypto-objs))
 
 libcfs-all-objs := debug.o fail.o module.o tracefile.o \
 		   libcfs_string.o hash.o \
-		   workitem.o \
 		   linux-crypto.o linux-crypto-adler.o
 
 libcfs-objs := $(libcfs-linux-objs) $(libcfs-all-objs)

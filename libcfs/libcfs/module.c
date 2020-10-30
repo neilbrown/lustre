@@ -683,12 +683,6 @@ static int __init libcfs_init(void)
 		return (rc);
 	}
 
-	rc = cfs_wi_startup();
-	if (rc) {
-		CERROR("initialize workitem: error %d\n", rc);
-		goto cleanup_deregister;
-	}
-
 	cfs_rehash_wq = alloc_workqueue("cfs_rh", WQ_SYSFS, 4);
 	if (!cfs_rehash_wq) {
 		rc = -ENOMEM;
@@ -700,7 +694,7 @@ static int __init libcfs_init(void)
 	rc = cfs_crypto_register();
 	if (rc) {
 		CERROR("cfs_crypto_regster: error %d\n", rc);
-		goto cleanup_wi;
+		goto cleanup_debug;
 	}
 
 	lnet_insert_debugfs(lnet_table);
@@ -711,13 +705,11 @@ static int __init libcfs_init(void)
 	rc = llcrypt_init();
 	if (rc) {
 		CERROR("llcrypt_init: error %d\n", rc);
-		goto cleanup_wi;
+		goto cleanup_debug;
 	}
 #endif
 	CDEBUG (D_OTHER, "portals setup OK\n");
 	return 0;
-cleanup_wi:
-	cfs_wi_shutdown();
 cleanup_debug:
 	libcfs_debug_cleanup();
 	return rc;
@@ -744,7 +736,6 @@ static void __exit libcfs_exit(void)
 	}
 
 	cfs_crypto_unregister();
-	cfs_wi_shutdown();
 
 	/* the below message is checked in test-framework.sh check_mem_leak() */
 	if (libcfs_kmem_read() != 0)
