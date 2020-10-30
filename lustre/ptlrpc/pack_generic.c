@@ -50,7 +50,9 @@
 #include <obd_cksum.h>
 #include <obd_class.h>
 #include <obd_support.h>
+#ifdef HAVE_SERVER_SUPPORT
 #include <obj_update.h>
+#endif
 
 #include "ptlrpc_internal.h"
 
@@ -2894,6 +2896,7 @@ void lustre_swab_hsm_request(struct hsm_request *hr)
 	__swab32s(&hr->hr_data_len);
 }
 
+#ifdef HAVE_SERVER_SUPPORT
 void lustre_swab_object_update(struct object_update *ou)
 {
 	struct object_update_param *param;
@@ -2997,6 +3000,7 @@ void lustre_swab_out_update_buffer(struct out_update_buffer *oub)
 	__swab32s(&oub->oub_padding);
 }
 EXPORT_SYMBOL(lustre_swab_out_update_buffer);
+#endif /* HAVE_SERVER_SUPPORT */
 
 void lustre_swab_swap_layouts(struct mdc_swap_layouts *msl)
 {
