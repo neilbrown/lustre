@@ -3317,11 +3317,13 @@ static int ldlm_setup(void)
 		GOTO(out, rc);
 	}
 
+#ifdef HAVE_SERVER_SUPPORT
 	rc = ldlm_reclaim_setup();
 	if (rc) {
 		CERROR("Failed to setup reclaim thread: rc = %d\n", rc);
 		GOTO(out, rc);
 	}
+#endif
 	RETURN(0);
 
  out:
@@ -3341,7 +3343,9 @@ static int ldlm_cleanup(void)
 		RETURN(-EBUSY);
 	}
 
+#ifdef HAVE_SERVER_SUPPORT
 	ldlm_reclaim_cleanup();
+#endif
 	ldlm_pools_fini();
 
 	if (ldlm_state->ldlm_bl_pool != NULL) {

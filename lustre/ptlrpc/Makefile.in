@@ -8,7 +8,8 @@ ldlm_objs += $(LDLM)ldlm_plain.o $(LDLM)ldlm_extent.o
 ldlm_objs += $(LDLM)ldlm_request.o $(LDLM)ldlm_lockd.o
 ldlm_objs += $(LDLM)ldlm_flock.o $(LDLM)ldlm_inodebits.o
 ldlm_objs += $(LDLM)ldlm_pool.o $(LDLM)interval_tree.o
-ldlm_objs += $(LDLM)ldlm_reclaim.o
+
+ldlm_server_objs := $(LDLM)ldlm_reclaim.o
 
 target_objs := $(TARGET)tgt_main.o $(TARGET)tgt_lastrcvd.o
 target_objs += $(TARGET)tgt_handler.o $(TARGET)out_handler.o
@@ -31,7 +32,7 @@ nodemap_objs += nodemap_idmap.o nodemap_rbtree.o nodemap_member.o
 nodemap_objs += nodemap_storage.o
 
 ptlrpc-objs := $(ldlm_objs) $(ptlrpc_objs) $(TARGET)barrier.o $(target_pool_objs)
-@SERVER_TRUE@ptlrpc-objs += $(target_objs) $(nodemap_objs)
+@SERVER_TRUE@ptlrpc-objs += $(target_objs) $(nodemap_objs) $(ldlm_server_objs)
 
 @GSS_TRUE@obj-m += gss/
 

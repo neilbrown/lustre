@@ -41,30 +41,7 @@
 #include <lustre_net.h>
 #include <obd.h>
 
-#define LL_CDEBUG_PAGE(mask, page, fmt, arg...)				\
-	CDEBUG(mask, "page %p map %p index %lu flags %lx count %u priv %0lx: " \
-	       fmt, page, page->mapping, page->index, (long)page->flags, \
-	       page_count(page), page_private(page), ## arg)
-
-#define ASSERT_MAX_SIZE_MB 60000ULL
-#define ASSERT_PAGE_INDEX(index, OP)                                    \
-do { if (index > ASSERT_MAX_SIZE_MB << (20 - PAGE_SHIFT)) {         \
-        CERROR("bad page index %lu > %llu\n", index,                    \
-	       ASSERT_MAX_SIZE_MB << (20 - PAGE_SHIFT));            \
-        libcfs_debug = ~0UL;                                            \
-        OP;                                                             \
-}} while(0)
-
-#define ASSERT_FILE_OFFSET(offset, OP)                                  \
-do { if (offset > ASSERT_MAX_SIZE_MB << 20) {                           \
-        CERROR("bad file offset %llu > %llu\n", offset,                 \
-               ASSERT_MAX_SIZE_MB << 20);                               \
-        libcfs_debug = ~0UL;                                            \
-        OP;                                                             \
-}} while(0)
-
 /* lib/debug.c */
-void dump_lniobuf(struct niobuf_local *lnb);
 int dump_req(struct ptlrpc_request *req);
 int block_debug_setup(void *addr, int len, __u64 off, __u64 id);
 int block_debug_check(char *who, void *addr, int len, __u64 off, __u64 id);

@@ -979,7 +979,9 @@ void ldlm_pool_add(struct ldlm_pool *pl, struct ldlm_lock *lock)
 	    lock->l_resource->lr_type == LDLM_PLAIN)
 		return;
 
+#ifdef HAVE_SERVER_SUPPORT
 	ldlm_reclaim_add(lock);
+#endif
 
 	atomic_inc(&pl->pl_granted);
 	atomic_inc(&pl->pl_grant_rate);
@@ -1007,7 +1009,9 @@ void ldlm_pool_del(struct ldlm_pool *pl, struct ldlm_lock *lock)
 	    lock->l_resource->lr_type == LDLM_PLAIN)
 		return;
 
+#ifdef HAVE_SERVER_SUPPORT
 	ldlm_reclaim_del(lock);
+#endif
 
 	LASSERT(atomic_read(&pl->pl_granted) > 0);
 	atomic_dec(&pl->pl_granted);
