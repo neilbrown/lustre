@@ -41,8 +41,10 @@
 #include <obd_class.h>
 #include <lustre_net.h>
 #include <lustre_disk.h>
+#ifdef HAVE_SERVER_SUPPORT
 #include <uapi/linux/lustre/lustre_access_log.h>
 #include <uapi/linux/lustre/lustre_lfsck_user.h>
+#endif
 #include <uapi/linux/lustre/lustre_cfg.h>
 
 
@@ -5392,6 +5394,7 @@ void lustre_assert_wire_constants(void)
 	LASSERTF((int)sizeof(union nodemap_rec) == 32, "found %lld\n",
 		 (long long)(int)sizeof(union nodemap_rec));
 
+#ifdef HAVE_SERVER_SUPPORT
 	LASSERTF(OFD_ACCESS_READ == 0x00000001UL, "found 0x%.8xUL\n",
 		(unsigned)OFD_ACCESS_READ);
 	LASSERTF(OFD_ACCESS_WRITE == 0x00000002UL, "found 0x%.8xUL\n",
@@ -5467,6 +5470,7 @@ void lustre_assert_wire_constants(void)
 		 (long long)(int)offsetof(struct lustre_access_log_info_v1, lali_entry_size));
 	LASSERTF((int)sizeof(((struct lustre_access_log_info_v1 *)0)->lali_entry_size) == 4, "found %lld\n",
 		 (long long)(int)sizeof(((struct lustre_access_log_info_v1 *)0)->lali_entry_size));
+#endif /* HAVE_SERVER_SUPPORT */
 
 	/* Checks for struct lfsck_request */
 	LASSERTF((int)sizeof(struct lfsck_request) == 96, "found %lld\n",
