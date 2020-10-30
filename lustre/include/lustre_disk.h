@@ -48,7 +48,14 @@
 #include <linux/backing-dev.h>
 #include <linux/list.h>
 #include <libcfs/libcfs.h>
+#ifdef HAVE_SERVER_SUPPORT
 #include <uapi/linux/lustre/lustre_disk.h>
+#else
+#define LDD_F_SV_TYPE_MDT	0x0001
+#define LDD_F_SV_TYPE_OST	0x0002
+#define LDD_F_SV_TYPE_MGS	0x0004
+#define LDD_F_SV_ALL		0x0008
+#endif
 #include <uapi/linux/lustre/lustre_idl.h>
 
 #define IS_MDT(data)		((data)->lsi_flags & LDD_F_SV_TYPE_MDT)

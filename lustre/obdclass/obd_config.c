@@ -1346,7 +1346,6 @@ void lustre_register_quota_process_config(int (*qpc)(struct lustre_cfg *lcfg))
 	quota_process_config = qpc;
 }
 EXPORT_SYMBOL(lustre_register_quota_process_config);
-#endif /* HAVE_SERVER_SUPPORT */
 
 #define QMT0_DEV_NAME_LEN (LUSTRE_MAXFSNAME + sizeof("-QMT0000"))
 static struct obd_device *obd_find_qmt0(char *obd_name)
@@ -1361,6 +1360,7 @@ static struct obd_device *obd_find_qmt0(char *obd_name)
 
 	return qmt;
 }
+#endif /* HAVE_SERVER_SUPPORT */
 
 /**
  * Process configuration commands given in lustre_cfg form.
@@ -1543,42 +1543,50 @@ int class_process_config(struct lustre_cfg *lcfg)
 	}
 	case LCFG_POOL_NEW: {
 		err = obd_pool_new(obd, lustre_cfg_string(lcfg, 2));
+#ifdef HAVE_SERVER_SUPPORT
 		if (!err && !strcmp(obd->obd_type->typ_name, LUSTRE_LOD_NAME)) {
 			obd = obd_find_qmt0(obd->obd_name);
 			if (obd)
 				obd_pool_new(obd, lustre_cfg_string(lcfg, 2));
 		}
+#endif
 		GOTO(out, err = 0);
 	}
 	case LCFG_POOL_ADD: {
 		err = obd_pool_add(obd, lustre_cfg_string(lcfg, 2),
                                    lustre_cfg_string(lcfg, 3));
+#ifdef HAVE_SERVER_SUPPORT
 		if (!err && !strcmp(obd->obd_type->typ_name, LUSTRE_LOD_NAME)) {
 			obd = obd_find_qmt0(obd->obd_name);
 			if (obd)
 				obd_pool_add(obd, lustre_cfg_string(lcfg, 2),
 					     lustre_cfg_string(lcfg, 3));
 		}
+#endif
 		GOTO(out, err = 0);
 	}
 	case LCFG_POOL_REM: {
 		err = obd_pool_rem(obd, lustre_cfg_string(lcfg, 2),
                                    lustre_cfg_string(lcfg, 3));
+#ifdef HAVE_SERVER_SUPPORT
 		if (!err && !strcmp(obd->obd_type->typ_name, LUSTRE_LOD_NAME)) {
 			obd = obd_find_qmt0(obd->obd_name);
 			if (obd)
 				obd_pool_rem(obd, lustre_cfg_string(lcfg, 2),
 					     lustre_cfg_string(lcfg, 3));
 		}
+#endif
 		GOTO(out, err = 0);
 	}
 	case LCFG_POOL_DEL: {
 		err = obd_pool_del(obd, lustre_cfg_string(lcfg, 2));
+#ifdef HAVE_SERVER_SUPPORT
 		if (!err && !strcmp(obd->obd_type->typ_name, LUSTRE_LOD_NAME)) {
 			obd = obd_find_qmt0(obd->obd_name);
 			if (obd)
 				obd_pool_del(obd, lustre_cfg_string(lcfg, 2));
 		}
+#endif
 		GOTO(out, err = 0);
 	}
 	/*
@@ -1813,16 +1821,21 @@ int class_config_llog_handler(const struct lu_env *env,
 			if (marker->cm_flags & CM_START) {
 				/* all previous flags off */
 				cfg->cfg_flags = CFG_F_MARKER;
+#ifdef HAVE_SERVER_SUPPORT
 				server_name2index(marker->cm_tgtname,
 						  &cfg->cfg_lwp_idx, NULL);
+#endif
 				if (marker->cm_flags & CM_SKIP) {
 					cfg->cfg_flags |= CFG_F_SKIP;
 					CDEBUG(D_CONFIG, "SKIP #%d\n",
 					       marker->cm_step);
 				} else if ((marker->cm_flags & CM_EXCLUDE) ||
-					   (cfg->cfg_sb &&
-					   lustre_check_exclusion(cfg->cfg_sb,
-							marker->cm_tgtname))) {
+					   (cfg->cfg_sb
+#ifdef HAVE_SERVER_SUPPORT
+					    && lustre_check_exclusion(cfg->cfg_sb,
+							marker->cm_tgtname)
+#endif
+					)) {
 					cfg->cfg_flags |= CFG_F_EXCLUDE;
 					CDEBUG(D_CONFIG, "EXCLUDE %d\n",
 					       marker->cm_step);
@@ -1962,8 +1975,11 @@ int class_config_llog_handler(const struct lu_env *env,
 		 * [3]: inactive-on-startup
 		 * [4]: restrictive net
 		 */
-		if (cfg && cfg->cfg_sb && s2lsi(cfg->cfg_sb) &&
-		    !IS_SERVER(s2lsi(cfg->cfg_sb))) {
+		if (cfg && cfg->cfg_sb && s2lsi(cfg->cfg_sb)
+#ifdef HAVE_SERVER_SUPPORT
+		    && !IS_SERVER(s2lsi(cfg->cfg_sb))
+#endif
+			) {
 			struct lustre_sb_info *lsi = s2lsi(cfg->cfg_sb);
 			char *nidnet = lsi->lsi_lmd->lmd_nidnet;
 

@@ -261,9 +261,10 @@ static struct config_llog_data *config_recover_log_add(struct obd_device *obd,
 					struct super_block *sb)
 {
 	struct config_llog_instance lcfg = *cfg;
-	struct lustre_sb_info *lsi = s2lsi(sb);
 	struct config_llog_data *cld;
 	char logname[32];
+#ifdef HAVE_SERVER_SUPPORT
+	struct lustre_sb_info *lsi = s2lsi(sb);
 
 	if (IS_OST(lsi))
 		return NULL;
@@ -271,17 +272,21 @@ static struct config_llog_data *config_recover_log_add(struct obd_device *obd,
 	/* for osp-on-ost, see lustre_start_osp() */
 	if (IS_MDT(lsi) && lcfg.cfg_instance)
 		return NULL;
+#endif
 
 	/* We have to use different llog for clients and MDTs for DNE,
 	 * where only clients are notified if one of DNE server restarts.
 	 */
 	LASSERT(strlen(fsname) < sizeof(logname) / 2);
 	strncpy(logname, fsname, sizeof(logname));
+#ifdef HAVE_SERVER_SUPPORT
 	if (IS_SERVER(lsi)) { /* mdt */
 		LASSERT(lcfg.cfg_instance == 0);
 		lcfg.cfg_instance = ll_get_cfg_instance(sb);
 		strncat(logname, "-mdtir", sizeof(logname));
-	} else {
+	} else
+#endif
+	{
 		LASSERT(lcfg.cfg_instance != 0);
 		strncat(logname, "-cliir", sizeof(logname));
 	}
@@ -377,6 +382,7 @@ config_log_add(struct obd_device *obd, char *logname,
 		}
 	}
 
+#ifdef HAVE_SERVER_SUPPORT
 	if (IS_MDT(s2lsi(sb)) && cfg->cfg_sub_clds & CONFIG_SUB_BARRIER) {
 		snprintf(seclogname + (ptr - logname), sizeof(seclogname) - 1,
 			 "-%s", BARRIER_FILENAME);
@@ -389,6 +395,7 @@ config_log_add(struct obd_device *obd, char *logname,
 			GOTO(out_params, rc);
 		}
 	}
+#endif
 
 	cld = do_config_log_add(obd, logname, CONFIG_T_CONFIG, cfg, sb);
 	if (IS_ERR(cld)) {
@@ -439,7 +446,9 @@ out_cld:
 	config_log_put(cld);
 out_barrier:
 	config_log_put(barrier_cld);
+#ifdef HAVE_SERVER_SUPPORT
 out_params:
+#endif
 	config_log_put(params_cld);
 out_nodemap:
 	config_log_put(nodemap_cld);
@@ -1117,12 +1126,14 @@ static int mgc_enqueue(struct obd_export *exp, enum ldlm_type type,
 	req_capsule_set_size(&req->rq_pill, &RMF_DLM_LVB, RCL_SERVER, 0);
         ptlrpc_request_set_replen(req);
 
+#ifdef HAVE_SERVER_SUPPORT
         /* check if this is server or client */
         if (cld->cld_cfg.cfg_sb) {
                 struct lustre_sb_info *lsi = s2lsi(cld->cld_cfg.cfg_sb);
 		if (lsi && IS_SERVER(lsi))
                         short_limit = 1;
         }
+#endif
         /* Limit how long we will wait for the enqueue to complete */
         req->rq_delay_limit = short_limit ? 5 : MGC_ENQUEUE_LIMIT;
         rc = ldlm_cli_enqueue(exp, &req, &einfo, &cld->cld_resid, NULL, flags,
@@ -1154,6 +1165,7 @@ static void mgc_notify_active(struct obd_device *unused)
 	/* TODO: Help the MGS rebuild nidtbl. -jay */
 }
 
+#ifdef HAVE_SERVER_SUPPORT
 /* Send target_reg message to MGS */
 static int mgc_target_register(struct obd_export *exp,
                                struct mgs_target_info *mti)
@@ -1200,6 +1212,7 @@ static int mgc_target_register(struct obd_export *exp,
 
         RETURN(rc);
 }
+#endif
 
 static int mgc_set_info_async(const struct lu_env *env, struct obd_export *exp,
 			      u32 keylen, void *key,
@@ -1375,7 +1388,6 @@ static int mgc_apply_recover_logs(struct obd_device *mgc,
 				  void *data, int datalen, bool mne_swab)
 {
 	struct config_llog_instance *cfg = &cld->cld_cfg;
-	struct lustre_sb_info *lsi = s2lsi(cfg->cfg_sb);
 	struct mgs_nidtbl_entry *entry;
 	struct lustre_cfg *lcfg;
 	struct lustre_cfg_bufs bufs;
@@ -1399,14 +1411,9 @@ static int mgc_apply_recover_logs(struct obd_device *mgc,
 	if (inst == NULL)
 		RETURN(-ENOMEM);
 
-	if (!IS_SERVER(lsi)) {
-		pos = snprintf(inst, PAGE_SIZE, "%016lx", cfg->cfg_instance);
-		if (pos >= PAGE_SIZE) {
-			OBD_FREE(inst, PAGE_SIZE);
-			return -E2BIG;
-		}
 #ifdef HAVE_SERVER_SUPPORT
-	} else {
+	if (IS_SERVER(s2lsi(cfg->cfg_sb))) {
+		struct lustre_sb_info *lsi = s2lsi(cfg->cfg_sb);
 		LASSERT(IS_MDT(lsi));
 		rc = server_name2svname(lsi->lsi_svname, inst, NULL,
 					PAGE_SIZE);
@@ -1415,7 +1422,14 @@ static int mgc_apply_recover_logs(struct obd_device *mgc,
 			RETURN(-EINVAL);
 		}
 		pos = strlen(inst);
+	} else
 #endif /* HAVE_SERVER_SUPPORT */
+	{
+		pos = snprintf(inst, PAGE_SIZE, "%016lx", cfg->cfg_instance);
+		if (pos >= PAGE_SIZE) {
+			OBD_FREE(inst, PAGE_SIZE);
+			return -E2BIG;
+		}
 	}
 
 	++pos;
@@ -2168,6 +2182,7 @@ static int mgc_process_config(struct obd_device *obd, size_t len, void *buf)
         ENTRY;
 
         switch(lcfg->lcfg_command) {
+#ifdef HAVE_SERVER_SUPPORT
         case LCFG_LOV_ADD_OBD: {
                 /* Overloading this cfg command: register a new target */
                 struct mgs_target_info *mti;
@@ -2187,6 +2202,7 @@ static int mgc_process_config(struct obd_device *obd, size_t len, void *buf)
                 CERROR("lov_del_obd unimplemented\n");
                 rc = -ENOSYS;
                 break;
+#endif
         case LCFG_SPTLRPC_CONF: {
                 rc = sptlrpc_process_config(lcfg);
                 break;

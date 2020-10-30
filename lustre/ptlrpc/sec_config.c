@@ -688,8 +688,10 @@ int sptlrpc_process_config(struct lustre_cfg *lcfg)
 	 * 3.	If both above conditions are not meet then the target
 	 *	is a actual filesystem.
 	 */
+#ifdef HAVE_SERVER_SUPPORT
 	if (server_name2fsname(target, fsname, NULL))
 		strlcpy(fsname, target, sizeof(target));
+#endif
 
 	rc = sptlrpc_parse_rule(param, &rule);
 	if (rc)

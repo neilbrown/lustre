@@ -239,6 +239,7 @@ int lustre_start_mgc(struct super_block *sb)
 	LASSERT(lsi->lsi_lmd);
 
 	/* Find the first non-lo MGS NID for our MGC name */
+#ifdef HAVE_SERVER_SUPPORT
 	if (IS_SERVER(lsi)) {
 		/* mount -o mgsnode=nid */
 		ptr = lsi->lsi_lmd->lmd_mgs;
@@ -256,7 +257,9 @@ int lustre_start_mgc(struct super_block *sb)
 				break;
 			}
 		}
-	} else { /* client */
+	} else
+#endif
+	{ /* client */
 		/* Use NIDs from mount line: uml1,1@elan:uml2,2@elan:/lustre */
 		ptr = lsi->lsi_lmd->lmd_dev;
 		if (class_parse_nid(ptr, &nid, &ptr) == 0)
@@ -985,6 +988,7 @@ static void lmd_print(struct lustre_mount_data *lmd)
 	}
 }
 
+#ifdef HAVE_SERVER_SUPPORT
 /* Is this server on the exclusion list */
 int lustre_check_exclusion(struct super_block *sb, char *svname)
 {
@@ -1011,6 +1015,7 @@ int lustre_check_exclusion(struct super_block *sb, char *svname)
 	}
 	RETURN(0);
 }
+#endif
 
 /* mount -v  -o exclude=lustre-OST0001:lustre-OST0002 -t lustre ... */
 static int lmd_make_exclusion(struct lustre_mount_data *lmd, const char *ptr)
