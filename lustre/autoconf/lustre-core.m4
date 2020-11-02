@@ -2890,6 +2890,7 @@ lustre/kernel_patches/targets/4.12-sles15sp1.target
 lustre/kernel_patches/targets/4.12-sles15sp2.target
 lustre/kernel_patches/targets/3.x-fc18.target
 lustre/ldlm/Makefile
+lustre/ldlm/autoMakefile
 lustre/fid/Makefile
 lustre/fid/autoMakefile
 lustre/llite/Makefile
@@ -2927,6 +2928,7 @@ lustre/mgc/autoMakefile
 lustre/mgs/Makefile
 lustre/mgs/autoMakefile
 lustre/target/Makefile
+lustre/target/autoMakefile
 lustre/ptlrpc/Makefile
 lustre/ptlrpc/autoMakefile
 lustre/ptlrpc/gss/Makefile
