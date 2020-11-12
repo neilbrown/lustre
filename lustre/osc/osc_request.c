@@ -46,6 +46,7 @@
 #include <obd_cksum.h>
 #include <obd_class.h>
 #include <lustre_osc.h>
+#include <linux/pagemap.h>
 #include <linux/falloc.h>
 
 #include "osc_internal.h"

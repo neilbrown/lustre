@@ -24,6 +24,9 @@
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
+#ifdef HAVE_SCHED_HEADERS
+#include <linux/sched/mm.h>
+#endif
 #include <libcfs/linux/linux-mem.h>
 #include "socklnd.h"
 

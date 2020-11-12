@@ -41,8 +41,12 @@
 #include <lustre_lmv.h>
 #include <lustre_mdc.h>
 #include <lustre_intent.h>
+#include <linux/namei.h>
+#include <linux/mount.h>
 #include <linux/compat.h>
 #include <linux/aio.h>
+#include <linux/xattr.h>
+#include <linux/posix_acl_xattr.h>
 #include <lustre_compat.h>
 #include <lustre_crypto.h>
 

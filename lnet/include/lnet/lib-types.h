@@ -46,6 +46,7 @@
 #include <linux/uio.h>
 #include <linux/semaphore.h>
 #include <linux/types.h>
+#include <linux/bio.h>
 
 #include <uapi/linux/lnet/lnet-dlc.h>
 #include <uapi/linux/lnet/lnetctl.h>
