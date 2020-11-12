@@ -57,6 +57,7 @@
 #include <obd_support.h>
 #include <obd_class.h>
 #include <lustre_lib.h>
+#include <lustre_wait.h>
 
 #include "ldlm_internal.h"
 

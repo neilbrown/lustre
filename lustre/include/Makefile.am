@@ -83,6 +83,7 @@ EXTRA_DIST = \
 	lustre_sec.h \
 	lustre_swab.h \
 	lustre_update.h \
+	lustre_wait.h \
 	lu_target.h \
 	lvfs.h \
 	md_object.h \

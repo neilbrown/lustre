@@ -44,6 +44,7 @@
 #include <lustre_log.h>
 #include <lprocfs_status.h>
 #include <lustre_disk.h>
+#include <lustre_wait.h>
 #include <lustre_kernelcomm.h>
 
 DEFINE_RWLOCK(obd_dev_lock);

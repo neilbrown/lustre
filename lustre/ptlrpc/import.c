@@ -43,6 +43,7 @@
 #include <lustre_net.h>
 #include <lustre_import.h>
 #include <lustre_export.h>
+#include <lustre_wait.h>
 #include <obd.h>
 #include <obd_cksum.h>
 #include <obd_class.h>

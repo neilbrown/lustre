@@ -35,6 +35,7 @@
 
 #include <obd_class.h>
 #include <lustre_log.h>
+#include <lustre_wait.h>
 #include "llog_internal.h"
 
 /* helper functions for calling the llog obd methods */

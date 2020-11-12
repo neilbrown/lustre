@@ -38,6 +38,7 @@
 #define DEBUG_SUBSYSTEM S_LDLM
 #include <lustre_dlm.h>
 #include <lustre_fid.h>
+#include <lustre_wait.h>
 #include <obd_class.h>
 #include <libcfs/linux/linux-hash.h>
 #include "ldlm_internal.h"

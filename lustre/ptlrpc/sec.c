@@ -49,6 +49,7 @@
 #include <lustre_import.h>
 #include <lustre_dlm.h>
 #include <lustre_sec.h>
+#include <lustre_wait.h>
 
 #include "ptlrpc_internal.h"
 

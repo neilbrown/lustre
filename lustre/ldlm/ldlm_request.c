@@ -59,6 +59,7 @@
 
 #include <lustre_errno.h>
 #include <lustre_dlm.h>
+#include <lustre_wait.h>
 #include <obd_class.h>
 #include <obd.h>
 

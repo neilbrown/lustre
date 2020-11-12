@@ -44,6 +44,7 @@
 #include <lustre_ha.h>
 #include <lustre_import.h>
 #include <lustre_req_layout.h>
+#include <lustre_wait.h>
 
 #include "ptlrpc_internal.h"
 

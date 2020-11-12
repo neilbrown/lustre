@@ -61,6 +61,7 @@
 
 #include <lustre_ha.h>
 #include <lustre_dlm.h>
+#include <lustre_wait.h>
 #include <lprocfs_status.h>
 #include <lustre_disk.h>
 #include <uapi/linux/lustre/lustre_param.h>

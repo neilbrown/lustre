@@ -56,6 +56,7 @@
 #include <lustre_net.h>
 #include <lustre_lib.h>
 #include <lustre_ha.h>
+#include <lustre_wait.h>
 #include <obd_class.h>   /* for obd_zombie */
 #include <obd_support.h> /* for OBD_FAIL_CHECK */
 #include <cl_object.h> /* cl_env_{get,put}() */

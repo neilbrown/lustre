@@ -43,6 +43,7 @@
 #include <linux/kthread.h>
 
 #include <lustre_obdo.h>
+#include <lustre_wait.h>
 
 #include "osp_internal.h"
 

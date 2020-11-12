@@ -37,6 +37,7 @@
 
 #define DEBUG_SUBSYSTEM S_OSC
 #include <lustre_osc.h>
+#include <lustre_wait.h>
 
 #include "osc_internal.h"
 
