@@ -536,7 +536,9 @@ static int __init libcfs_init(void)
 {
 	int rc;
 
+#ifndef UPSTREAM_LINUX
 	cfs_arch_init();
+#endif
 
 	rc = libcfs_debug_init(5 * 1024 * 1024);
 	if (rc < 0) {
@@ -568,12 +570,13 @@ static int __init libcfs_init(void)
 	if (!IS_ERR_OR_NULL(lnet_debugfs_root))
 		lnet_insert_debugfs_links(lnet_debugfs_symlinks);
 
+#ifndef UPSTREAM_LINUX
 	rc = llcrypt_init();
 	if (rc) {
 		CERROR("llcrypt_init: error %d\n", rc);
 		goto cleanup_wi;
 	}
-
+#endif
 	CDEBUG (D_OTHER, "portals setup OK\n");
 	return 0;
 cleanup_wi:
@@ -594,7 +597,9 @@ static void __exit libcfs_exit(void)
 	CDEBUG(D_MALLOC, "before Portals cleanup: kmem %lld\n",
 	       libcfs_kmem_read());
 
+#ifndef UPSTREAM_LINUX
 	llcrypt_exit();
+#endif
 
 	if (cfs_rehash_wq) {
 		destroy_workqueue(cfs_rehash_wq);

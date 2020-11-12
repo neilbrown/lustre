@@ -1055,7 +1055,9 @@ static inline int notifier_from_ioctl_errno(int err)
 	return notifier_from_errno(err) | NOTIFY_STOP_MASK;
 }
 
+#ifndef UPSTREAM_LINUX
 void init_libcfs_vfree_atomic(void);
 void exit_libcfs_vfree_atomic(void);
+#endif
 
 #endif

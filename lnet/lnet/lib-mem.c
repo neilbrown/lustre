@@ -173,6 +173,7 @@ cfs_array_alloc(int count, unsigned int size)
 }
 EXPORT_SYMBOL(cfs_array_alloc);
 
+#ifndef UPSTREAM_LINUX
 /*
  * This is opencoding of vfree_atomic from Linux kernel added in 4.10 with
  * minimum changes needed to work on older kernels too.
@@ -231,3 +232,4 @@ void __exit exit_libcfs_vfree_atomic(void)
 {
 	flush_scheduled_work();
 }
+#endif

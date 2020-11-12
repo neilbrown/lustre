@@ -252,7 +252,9 @@ static struct lu_device *lov_device_free(const struct lu_env *env,
 					 struct lu_device *d)
 {
 	struct lov_device *ld = lu2lov_dev(d);
+#ifndef UPSTREAM_LINUX
 	const int nr = ld->ld_target_nr;
+#endif
 
 	lu_site_fini(&ld->ld_site);
 

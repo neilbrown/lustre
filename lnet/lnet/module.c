@@ -431,7 +431,9 @@ static int __init lnet_init(void)
 		RETURN(rc);
 	}
 
+#ifndef UPSTREAM_LINUX
 	init_libcfs_vfree_atomic();
+#endif
 
 	rc = misc_register(&libcfs_dev);
 	if (rc) {
@@ -458,8 +460,9 @@ static void __exit lnet_exit(void)
 
 	cfs_cpu_fini();
 
+#ifndef UPSTREAM_LINUX
 	exit_libcfs_vfree_atomic();
-
+#endif
 	lnet_lib_exit();
 }
 

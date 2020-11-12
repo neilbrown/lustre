@@ -1259,7 +1259,9 @@ rescan:
 void
 lnet_destroy_rtrbuf(struct lnet_rtrbuf *rb, int npages)
 {
+#ifndef UPSTREAM_LINUX
 	int sz = offsetof(struct lnet_rtrbuf, rb_kiov[npages]);
+#endif
 
 	while (--npages >= 0)
 		__free_page(rb->rb_kiov[npages].bv_page);

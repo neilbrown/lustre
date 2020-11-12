@@ -47,6 +47,7 @@
 # include <lu_target.h>
 # include <obd_target.h>
 # include <lustre_quota.h>
+# include <lvfs.h>
 #endif
 #include <lu_ref.h>
 #include <lustre_export.h>
@@ -54,7 +55,7 @@
 #include <lustre_fld.h>
 #include <lustre_handles.h>
 #include <lustre_intent.h>
-#include <lvfs.h>
+#include <lustre_compat.h>
 
 #define MAX_OBD_DEVICES 8192
 
@@ -666,7 +667,9 @@ struct obd_device {
 	time64_t		obd_osfs_age;
 	__u64			obd_last_committed;
 	struct mutex		obd_dev_mutex;
+#ifdef HAVE_SERVER_SUPPORT
 	struct lvfs_run_ctxt	obd_lvfs_ctxt;
+#endif
 	struct obd_llog_group	obd_olg;	/* default llog group */
 	struct obd_device	*obd_observer;
 	struct rw_semaphore	obd_observer_link_sem;

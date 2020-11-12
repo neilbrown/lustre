@@ -209,6 +209,7 @@ static void jobid_prune_expedite(void)
 	}
 }
 
+#ifndef UPSTREAM_LINUX
 /*
  * Get jobid of current process by reading the environment variable
  * stored in between the "env_start" & "env_end" of task struct.
@@ -255,6 +256,7 @@ int jobid_get_from_environ(char *jobid_var, char *jobid, int *jobid_len)
 out:
 	return rc;
 }
+#endif /* UPSTREAM_LINUX */
 
 /*
  * jobid_should_free_item
@@ -411,6 +413,7 @@ static int jobid_get_from_cache(char *jobid, size_t joblen)
 	 * later, to avoid repeat lookups for PID if obd_jobid_var missing.
 	 */
 	spin_lock(&pidmap->jp_lock);
+#ifndef UPSTREAM_LINUX
 	if (pidmap->jp_time + RESCAN_INTERVAL <= now) {
 		char env_jobid[LUSTRE_JOBID_SIZE] = "";
 		int env_len = sizeof(env_jobid);
@@ -434,6 +437,7 @@ static int jobid_get_from_cache(char *jobid, size_t joblen)
 			pidmap->jp_jobid[0] = '\0';
 		}
 	}
+#endif /* UPSTREAM_LINUX */
 
 	/*
 	 * Regardless of how pidmap was found, if it contains a valid entry

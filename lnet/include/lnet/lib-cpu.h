@@ -303,14 +303,16 @@ struct workqueue_struct *cfs_cpt_bind_workqueue(const char *wq_name,
 						struct cfs_cpt_table *tbl,
 						int flags, int cpt, int nthrs)
 {
+#ifndef UPSTREAM_LINUX
 	cpumask_var_t *mask = cfs_cpt_cpumask(tbl, cpt);
 	struct workqueue_attrs attrs = { };
+#endif
 	struct workqueue_struct *wq;
 
 	wq = alloc_workqueue(wq_name, WQ_UNBOUND | flags, nthrs);
 	if (!wq)
 		return ERR_PTR(-ENOMEM);
-
+#ifndef UPSTREAM_LINUX
 	if (mask && alloc_cpumask_var(&attrs.cpumask, GFP_KERNEL)) {
 		cpumask_copy(attrs.cpumask, *mask);
 		cpus_read_lock();
@@ -318,7 +320,7 @@ struct workqueue_struct *cfs_cpt_bind_workqueue(const char *wq_name,
 		cpus_read_unlock();
 		free_cpumask_var(attrs.cpumask);
 	}
-
+#endif
 	return wq;
 }
 

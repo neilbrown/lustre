@@ -44,6 +44,7 @@ void ll_sbi_set_encrypt(struct ll_sb_info *sbi, bool set);
 #define __FS_HAS_ENCRYPTION 1
 #include <linux/fscrypt.h>
 
+#ifndef UPSTREAM_LINUX
 #define llcrypt_operations	fscrypt_operations
 #define llcrypt_symlink_data	fscrypt_symlink_data
 #define llcrypt_dummy_context_enabled(inode) \
@@ -77,6 +78,7 @@ void ll_sbi_set_encrypt(struct ll_sb_info *sbi, bool set);
 #define llcrypt_prepare_setattr(dentry, attr)		\
 	fscrypt_prepare_setattr(dentry, attr)
 #define llcrypt_set_ops(sb, cop)	fscrypt_set_ops(sb, cop)
+#endif /* UPSTREAM_LINUX */
 #else /* !HAVE_LUSTRE_CRYPTO */
 #undef IS_ENCRYPTED
 #define IS_ENCRYPTED(x)	0

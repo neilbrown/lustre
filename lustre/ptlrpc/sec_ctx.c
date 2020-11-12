@@ -62,6 +62,7 @@ static inline void ll_set_fs_pwd(struct fs_struct *fs, struct vfsmount *mnt,
 		path_put(&old_pwd);
 }
 
+#ifdef HAVE_SERVER_SUPPORT
 /* push / pop to root of obd store */
 void push_ctxt(struct lvfs_run_ctxt *save, struct lvfs_run_ctxt *new_ctx)
 {
@@ -108,3 +109,4 @@ void pop_ctxt(struct lvfs_run_ctxt *saved, struct lvfs_run_ctxt *new_ctx)
 	current->fs->umask = saved->umask;
 }
 EXPORT_SYMBOL(pop_ctxt);
+#endif
