@@ -2928,7 +2928,7 @@ free_req:
 		}
 	}
 out:
-	EXIT;
+	RETURN_EXIT;
 }
 
 void ptlrpc_cleanup_client(struct obd_import *imp)

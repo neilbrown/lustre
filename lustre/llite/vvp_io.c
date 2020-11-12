@@ -398,7 +398,7 @@ static void vvp_io_fini(const struct lu_env *env, const struct cl_io_slice *ios)
 		GOTO(out, 0);
 	}
 out:
-	EXIT;
+	RETURN_EXIT;
 }
 
 static void vvp_io_fault_fini(const struct lu_env *env,

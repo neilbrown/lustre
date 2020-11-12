@@ -657,7 +657,7 @@ void ptlrpcd_stop(struct ptlrpcd_ctl *pc, int force)
 	wake_up(&pc->pc_set->set_waitq);
 
 out:
-	EXIT;
+	RETURN_EXIT;
 }
 
 void ptlrpcd_free(struct ptlrpcd_ctl *pc)
