@@ -84,7 +84,9 @@ int tgt_pool_init(struct lu_tgt_pool *op, unsigned int count);
 int tgt_pool_add(struct lu_tgt_pool *op, __u32 idx, unsigned int min_count);
 int tgt_pool_remove(struct lu_tgt_pool *op, __u32 idx);
 int tgt_pool_free(struct lu_tgt_pool *op);
+#ifdef HAVE_SERVER_SUPPORT
 int tgt_check_index(int idx, struct lu_tgt_pool *osts);
+#endif
 int tgt_pool_extend(struct lu_tgt_pool *op, unsigned int min_count);
 
 #endif /* __OBD_TARGET_H */

@@ -9,7 +9,7 @@ target_objs += tgt_grant.o tgt_fmd.o
 
 target_pool_objs := tgt_pool.o barrier.o
 
-EXTRA_DIST = $(target_objs:.o=.c) $(target_pool_objs:.o=.c) tgt_internal.h
+EXTRA_DIST = $(target_objs:.o=.c) tgt_internal.h
 
 ifneq "$(MODULES)" "ptlrpc"
 @INCLUDE_RULES@

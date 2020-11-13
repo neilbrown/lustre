@@ -1260,6 +1260,25 @@ __releases(&md->lsm_lock)
 	spin_unlock(&md->lsm_lock);
 }
 
+#ifndef HAVE_SERVER_SUPPORT
+static int tgt_check_index(int idx, struct lu_tgt_pool *osts)
+{
+	int rc, i;
+	ENTRY;
+
+	down_read(&osts->op_rw_sem);
+	for (i = 0; i < osts->op_count; i++) {
+		if (osts->op_array[i] == idx)
+			GOTO(out, rc = 0);
+	}
+	rc = -ENOENT;
+	EXIT;
+out:
+	up_read(&osts->op_rw_sem);
+	return rc;
+}
+#endif /* HAVE_SERVER_SUPPORT */
+
 static int lov_quotactl(struct obd_device *obd, struct obd_export *exp,
 			struct obd_quotactl *oqctl)
 {
