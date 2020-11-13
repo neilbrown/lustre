@@ -124,12 +124,14 @@ inline bool ll_sbi_has_test_dummy_encryption(struct ll_sb_info *sbi)
 	return unlikely(sbi->ll_flags & LL_SBI_TEST_DUMMY_ENCRYPTION);
 }
 
+#ifdef HAVE_DUMMY_CONTEXT
 static bool ll_dummy_context(struct inode *inode)
 {
 	struct ll_sb_info *sbi = ll_i2sbi(inode);
 
 	return sbi ? ll_sbi_has_test_dummy_encryption(sbi) : false;
 }
+#endif
 
 inline bool ll_sbi_has_encrypt(struct ll_sb_info *sbi)
 {
@@ -161,7 +163,9 @@ const struct llcrypt_operations lustre_cryptops = {
 	.key_prefix		= "lustre:",
 	.get_context		= ll_get_context,
 	.set_context		= ll_set_context,
+#ifdef HAVE_DUMMY_CONTEXT
 	.dummy_context		= ll_dummy_context,
+#endif
 	.empty_dir		= ll_empty_dir,
 	.max_namelen		= NAME_MAX,
 };
