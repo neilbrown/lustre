@@ -32,7 +32,7 @@
 
 #define DEBUG_SUBSYSTEM S_LNET
 
-#include <libcfs/libcfs.h>
+#include <lnet/lib-lnet.h>
 
 /** destroy cpu-partition lock, see libcfs_private.h for more detail */
 void
