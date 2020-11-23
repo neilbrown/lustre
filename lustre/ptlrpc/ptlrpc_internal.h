@@ -47,6 +47,7 @@ extern struct mutex ptlrpc_all_services_mutex;
 extern struct ptlrpc_nrs_pol_conf nrs_conf_fifo;
 
 #ifdef HAVE_SERVER_SUPPORT
+#include "heap.h"
 extern struct ptlrpc_nrs_pol_conf nrs_conf_crrn;
 extern struct ptlrpc_nrs_pol_conf nrs_conf_orr;
 extern struct ptlrpc_nrs_pol_conf nrs_conf_trr;

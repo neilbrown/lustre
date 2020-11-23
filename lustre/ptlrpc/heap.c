@@ -36,6 +36,8 @@
 #define DEBUG_SUBSYSTEM S_LNET
 
 #include <libcfs/libcfs.h>
+#include <lustre_net.h>
+#include "heap.h"
 
 #define CBH_ALLOC(ptr, h)						\
 do {									\

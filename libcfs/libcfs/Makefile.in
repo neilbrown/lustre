@@ -22,9 +22,6 @@ libcfs-all-objs := debug.o fail.o module.o tracefile.o \
 		   linux-crypto.o linux-crypto-adler.o \
 		   $(libcfs-objs-y)
 
-@SERVER_TRUE@libcfs-all-objs += heap.o
-@SERVER_FALSE@EXTRA_DIST += heap.c
-
 libcfs-objs := $(libcfs-linux-objs) $(libcfs-all-objs)
 @LLCRYPT_TRUE@libcfs-objs += $(libcfs-crypto-objs)
 

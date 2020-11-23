@@ -54,9 +54,6 @@
 #include <libcfs/libcfs_string.h>
 #include <libcfs/libcfs_workitem.h>
 #include <libcfs/libcfs_hash.h>
-#ifdef HAVE_SERVER_SUPPORT
-#include <libcfs/libcfs_heap.h>
-#endif
 #include <libcfs/libcfs_fail.h>
 #include "curproc.h"
 
