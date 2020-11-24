@@ -41,7 +41,6 @@
 #define DEBUG_SUBSYSTEM S_RPC
 #include <obd_support.h>
 #include <obd_class.h>
-#include <libcfs/libcfs.h>
 #include <lustre_req_layout.h>
 #include "ptlrpc_internal.h"
 
@@ -809,7 +808,7 @@ nrs_tbf_jobid_list_free(struct list_head *jobid_list)
 }
 
 static int
-nrs_tbf_jobid_list_add(struct cfs_lstr *id, struct list_head *jobid_list)
+nrs_tbf_jobid_list_add(char *id, struct list_head *jobid_list)
 {
 	struct nrs_tbf_jobid *jobid;
 	char *ptr;
@@ -818,14 +817,14 @@ nrs_tbf_jobid_list_add(struct cfs_lstr *id, struct list_head *jobid_list)
 	if (jobid == NULL)
 		return -ENOMEM;
 
-	OBD_ALLOC(jobid->tj_id, id->ls_len + 1);
+	OBD_ALLOC(jobid->tj_id, strlen(id) + 1);
 	if (jobid->tj_id == NULL) {
 		OBD_FREE_PTR(jobid);
 		return -ENOMEM;
 	}
 
-	memcpy(jobid->tj_id, id->ls_str, id->ls_len);
-	ptr = lprocfs_strnstr(id->ls_str, "*", id->ls_len);
+	strcpy(jobid->tj_id, id);
+	ptr = strchr(id, '*');
 	if (ptr == NULL)
 		jobid->tj_match_flag = NRS_TBF_MATCH_FULL;
 	else
@@ -887,25 +886,23 @@ nrs_tbf_jobid_list_match(struct list_head *jobid_list, char *id)
 }
 
 static int
-nrs_tbf_jobid_list_parse(char *str, int len, struct list_head *jobid_list)
+nrs_tbf_jobid_list_parse(char *orig, struct list_head *jobid_list)
 {
-	struct cfs_lstr src;
-	struct cfs_lstr res;
+	char *str;
 	int rc = 0;
 	ENTRY;
 
-	src.ls_str = str;
-	src.ls_len = len;
+	orig = kstrdup(orig, GFP_KERNEL);
+	if (!orig)
+		return -ENOMEM;
 	INIT_LIST_HEAD(jobid_list);
-	while (src.ls_str) {
-		rc = cfs_gettok(&src, ' ', &res);
-		if (rc == 0) {
+	for (str = strim(orig); rc == 0 && *str; str = skip_spaces(str)) {
+		char *tok = strsep(&str, " ");
+
+		if (!*tok)
 			rc = -EINVAL;
-			break;
-		}
-		rc = nrs_tbf_jobid_list_add(&res, jobid_list);
-		if (rc)
-			break;
+		else
+			rc = nrs_tbf_jobid_list_add(tok, jobid_list);
 	}
 	if (rc)
 		nrs_tbf_jobid_list_free(jobid_list);
@@ -955,7 +952,6 @@ static int nrs_tbf_jobid_parse(struct nrs_tbf_cmd *cmd, char *id)
 
 	/* parse jobid list */
 	rc = nrs_tbf_jobid_list_parse(cmd->u.tc_start.ts_jobids_str,
-				      strlen(cmd->u.tc_start.ts_jobids_str),
 				      &cmd->u.tc_start.ts_jobids);
 	if (rc)
 		nrs_tbf_jobid_cmd_fini(cmd);
@@ -982,7 +978,6 @@ static int nrs_tbf_jobid_rule_init(struct ptlrpc_nrs_policy *policy,
 	INIT_LIST_HEAD(&rule->tr_jobids);
 	if (!list_empty(&start->u.tc_start.ts_jobids)) {
 		rc = nrs_tbf_jobid_list_parse(rule->tr_jobids_str,
-					      strlen(rule->tr_jobids_str),
 					      &rule->tr_jobids);
 		if (rc)
 			CERROR("jobids {%s} illegal\n", rule->tr_jobids_str);
@@ -1841,7 +1836,7 @@ nrs_tbf_expression_parse(char *str, struct list_head *cond_list)
 			GOTO(out, rc = -EINVAL);
 		expr->te_field = NRS_TBF_FIELD_NID;
 	} else if (strcmp(field, "jobid") == 0) {
-		if (nrs_tbf_jobid_list_parse(str, len,
+		if (nrs_tbf_jobid_list_parse(str,
 					     &expr->te_cond) < 0)
 			GOTO(out, rc = -EINVAL);
 		expr->te_field = NRS_TBF_FIELD_JOBID;
