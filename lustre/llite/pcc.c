@@ -205,9 +205,9 @@ static void pcc_cmd_fini(struct pcc_cmd *cmd)
 	}
 }
 
-#define PCC_DISJUNCTION_DELIM	(',')
-#define PCC_CONJUNCTION_DELIM	('&')
-#define PCC_EXPRESSION_DELIM	('=')
+#define PCC_DISJUNCTION_DELIM	(",")
+#define PCC_CONJUNCTION_DELIM	("&")
+#define PCC_EXPRESSION_DELIM	("=")
 
 static int
 pcc_fname_list_add(struct cfs_lstr *id, struct list_head *fname_list)
@@ -257,11 +257,9 @@ pcc_fname_list_parse(char *str, int len, struct list_head *fname_list)
 }
 
 static int
-pcc_id_list_parse(char *str, int len, struct list_head *id_list,
+pcc_id_list_parse(char *str, struct list_head *id_list,
 		  enum pcc_field type)
 {
-	struct cfs_lstr src;
-	struct cfs_lstr res;
 	int rc = 0;
 
 	ENTRY;
@@ -270,19 +268,16 @@ pcc_id_list_parse(char *str, int len, struct list_head *id_list,
 	    type != PCC_FIELD_PROJID)
 		RETURN(-EINVAL);
 
-	src.ls_str = str;
-	src.ls_len = len;
 	INIT_LIST_HEAD(id_list);
-	while (src.ls_str) {
+	while (*str) {
+		char *num;
 		struct pcc_match_id *id;
-		__u32 id_val;
+		unsigned long id_val;
 
-		if (cfs_gettok(&src, ' ', &res) == 0)
-			GOTO(out, rc = -EINVAL);
-
-		if (!cfs_str2num_check(res.ls_str, res.ls_len,
-				       &id_val, 0, (u32)~0U))
-			GOTO(out, rc = -EINVAL);
+		num = strsep(&str, " ");
+		rc = kstrtoul(str, 0, &id_val);
+		if (rc)
+			GOTO(out, rc);
 
 		OBD_ALLOC_PTR(id);
 		if (id == NULL)
@@ -290,6 +285,8 @@ pcc_id_list_parse(char *str, int len, struct list_head *id_list,
 
 		id->pmi_id = id_val;
 		list_add_tail(&id->pmi_linkage, id_list);
+
+		str = skip_spaces(str);
 	}
 out:
 	if (rc)
@@ -297,59 +294,49 @@ out:
 	RETURN(rc);
 }
 
-static inline bool
-pcc_check_field(struct cfs_lstr *field, char *str)
-{
-	int len = strlen(str);
-
-	return (field->ls_len == len &&
-		strncmp(field->ls_str, str, len) == 0);
-}
-
 static int
-pcc_expression_parse(struct cfs_lstr *src, struct list_head *cond_list)
+pcc_expression_parse(char *str, struct list_head *cond_list)
 {
 	struct pcc_expression *expr;
-	struct cfs_lstr field;
+	char *field;
+	int len;
 	int rc = 0;
 
 	OBD_ALLOC_PTR(expr);
 	if (expr == NULL)
 		return -ENOMEM;
 
-	rc = cfs_gettok(src, PCC_EXPRESSION_DELIM, &field);
-	if (rc == 0 || src->ls_len <= 2 || src->ls_str[0] != '{' ||
-	    src->ls_str[src->ls_len - 1] != '}')
+	field = strsep(&str, PCC_EXPRESSION_DELIM);
+	str = skip_spaces(str);
+	if (!*field || str[0] != '{' || str[strlen(str)-1] != '}')
 		GOTO(out, rc = -EINVAL);
 
 	/* Skip '{' and '}' */
-	src->ls_str++;
-	src->ls_len -= 2;
+	str += 1;
+	len = strlen(str);
+	str[len-1] = '\0';
+	len -= 1;
 
-	if (pcc_check_field(&field, "uid")) {
-		if (pcc_id_list_parse(src->ls_str,
-				      src->ls_len,
+	if (strcmp(field, "uid") == 0) {
+		if (pcc_id_list_parse(str,
 				      &expr->pe_cond,
 				      PCC_FIELD_UID) < 0)
 			GOTO(out, rc = -EINVAL);
 		expr->pe_field = PCC_FIELD_UID;
-	} else if (pcc_check_field(&field, "gid")) {
-		if (pcc_id_list_parse(src->ls_str,
-				      src->ls_len,
+	} else if (strcmp(field, "gid") == 0) {
+		if (pcc_id_list_parse(str,
 				      &expr->pe_cond,
 				      PCC_FIELD_GID) < 0)
 			GOTO(out, rc = -EINVAL);
 		expr->pe_field = PCC_FIELD_GID;
-	} else if (pcc_check_field(&field, "projid")) {
-		if (pcc_id_list_parse(src->ls_str,
-				      src->ls_len,
+	} else if (strcmp(field, "projid") == 0) {
+		if (pcc_id_list_parse(str,
 				      &expr->pe_cond,
 				      PCC_FIELD_PROJID) < 0)
 			GOTO(out, rc = -EINVAL);
 		expr->pe_field = PCC_FIELD_PROJID;
-	} else if (pcc_check_field(&field, "fname")) {
-		if (pcc_fname_list_parse(src->ls_str,
-					 src->ls_len,
+	} else if (strcmp(field, "fname") == 0) {
+		if (pcc_fname_list_parse(str, len,
 					 &expr->pe_cond) < 0)
 			GOTO(out, rc = -EINVAL);
 		expr->pe_field = PCC_FIELD_FNAME;
@@ -365,10 +352,9 @@ out:
 }
 
 static int
-pcc_conjunction_parse(struct cfs_lstr *src, struct list_head *cond_list)
+pcc_conjunction_parse(char *str, struct list_head *cond_list)
 {
 	struct pcc_conjunction *conjunction;
-	struct cfs_lstr expr;
 	int rc = 0;
 
 	OBD_ALLOC_PTR(conjunction);
@@ -378,39 +364,37 @@ pcc_conjunction_parse(struct cfs_lstr *src, struct list_head *cond_list)
 	INIT_LIST_HEAD(&conjunction->pc_expressions);
 	list_add_tail(&conjunction->pc_linkage, cond_list);
 
-	while (src->ls_str) {
-		rc = cfs_gettok(src, PCC_CONJUNCTION_DELIM, &expr);
-		if (rc == 0) {
+	while (rc == 0 && *str) {
+		char *expr = strim(strsep(&str, PCC_CONJUNCTION_DELIM));
+
+		if (!*expr)
 			rc = -EINVAL;
-			break;
-		}
-		rc = pcc_expression_parse(&expr,
-					  &conjunction->pc_expressions);
-		if (rc)
-			break;
+		else
+			rc = pcc_expression_parse(expr,
+						  &conjunction->pc_expressions);
 	}
 	return rc;
 }
 
-static int pcc_conds_parse(char *str, int len, struct list_head *cond_list)
+static int pcc_conds_parse(char *orig, struct list_head *cond_list)
 {
-	struct cfs_lstr src;
-	struct cfs_lstr res;
+	char *str;
 	int rc = 0;
 
-	src.ls_str = str;
-	src.ls_len = len;
+	orig = kstrdup(orig, GFP_KERNEL);
+	if (!orig)
+		return -ENOMEM;
+
 	INIT_LIST_HEAD(cond_list);
-	while (src.ls_str) {
-		rc = cfs_gettok(&src, PCC_DISJUNCTION_DELIM, &res);
-		if (rc == 0) {
+	for (str = strim(orig); rc == 0 && *str; str = strim(str)) {
+		char *term = strsep(&str, PCC_DISJUNCTION_DELIM);
+
+		if (!*term)
 			rc = -EINVAL;
-			break;
-		}
-		rc = pcc_conjunction_parse(&res, cond_list);
-		if (rc)
-			break;
+		else
+			rc = pcc_conjunction_parse(term, cond_list);
 	}
+	kfree(orig);
 	return rc;
 }
 
@@ -425,7 +409,6 @@ static int pcc_id_parse(struct pcc_cmd *cmd, const char *id)
 	memcpy(cmd->u.pccc_add.pccc_conds_str, id, strlen(id));
 
 	rc = pcc_conds_parse(cmd->u.pccc_add.pccc_conds_str,
-			     strlen(cmd->u.pccc_add.pccc_conds_str),
 			     &cmd->u.pccc_add.pccc_conds);
 	if (rc)
 		pcc_cmd_fini(cmd);
@@ -584,8 +567,7 @@ pcc_dataset_rule_init(struct pcc_match_rule *rule, struct pcc_cmd *cmd)
 	INIT_LIST_HEAD(&rule->pmr_conds);
 	if (!list_empty(&cmd->u.pccc_add.pccc_conds))
 		rc = pcc_conds_parse(rule->pmr_conds_str,
-					  strlen(rule->pmr_conds_str),
-					  &rule->pmr_conds);
+				     &rule->pmr_conds);
 
 	if (rc)
 		pcc_dataset_rule_fini(rule);
