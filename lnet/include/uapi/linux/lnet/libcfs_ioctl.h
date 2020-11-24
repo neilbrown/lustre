@@ -47,8 +47,8 @@
 #define __user
 #endif
 
-#define LIBCFS_IOCTL_VERSION 0x0001000a
-#define LIBCFS_IOCTL_VERSION2 0x0001000b
+#define LNET_IOCTL_VERSION 0x0001000a
+#define LNET_IOCTL_VERSION2 0x0001000b
 
 struct libcfs_ioctl_hdr {
 	__u32 ioc_len;
@@ -150,7 +150,5 @@ struct libcfs_ioctl_data {
 #define IOC_LIBCFS_GET_LOCAL_HSTATS	   _IOWR(IOC_LIBCFS_TYPE, 103, IOCTL_CONFIG_SIZE)
 #define IOC_LIBCFS_GET_RECOVERY_QUEUE	   _IOWR(IOC_LIBCFS_TYPE, 104, IOCTL_CONFIG_SIZE)
 #define IOC_LIBCFS_MAX_NR					  104
-
-extern int libcfs_ioctl_data_adjust(struct libcfs_ioctl_data *data);
 
 #endif /* __UAPI_LIBCFS_IOCTL_H__ */

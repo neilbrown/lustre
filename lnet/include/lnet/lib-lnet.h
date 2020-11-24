@@ -551,8 +551,6 @@ struct lnet_ni *lnet_get_next_ni_locked(struct lnet_net *mynet,
 					struct lnet_ni *prev);
 struct lnet_ni *lnet_get_ni_idx_locked(int idx);
 
-extern int libcfs_ioctl_getdata(struct libcfs_ioctl_hdr **hdr_pp,
-				struct libcfs_ioctl_hdr __user *uparam);
 extern int lnet_get_peer_list(__u32 *countp, __u32 *sizep,
 			      struct lnet_process_id __user *ids);
 extern void lnet_peer_ni_set_healthv(lnet_nid_t nid, int value, bool all);
@@ -1047,4 +1045,13 @@ __u32 lnet_sum_stats(struct lnet_element_stats *stats,
 
 void lnet_usr_translate_stats(struct lnet_ioctl_element_msg_stats *msg_stats,
 			      struct lnet_element_stats *stats);
+
+extern struct blocking_notifier_head lnet_ioctl_list;
+static inline int notifier_from_ioctl_errno(int err)
+{
+	if (err == -EINVAL)
+		return NOTIFY_OK;
+	return notifier_from_errno(err) | NOTIFY_STOP_MASK;
+}
+
 #endif
