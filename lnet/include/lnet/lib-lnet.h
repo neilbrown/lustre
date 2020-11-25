@@ -45,6 +45,7 @@
 #include <libcfs/libcfs.h>
 #include <lnet/api.h>
 #include <lnet/lib-types.h>
+#include <lnet/lib-cpu.h>
 #include <uapi/linux/lnet/lnet-dlc.h>
 #include <uapi/linux/lnet/lnet-types.h>
 #include <uapi/linux/lnet/lnetctl.h>
@@ -1053,5 +1054,8 @@ static inline int notifier_from_ioctl_errno(int err)
 		return NOTIFY_OK;
 	return notifier_from_errno(err) | NOTIFY_STOP_MASK;
 }
+
+void init_libcfs_vfree_atomic(void);
+void exit_libcfs_vfree_atomic(void);
 
 #endif

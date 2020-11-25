@@ -40,6 +40,7 @@
 #include <linux/types.h>
 
 #include <libcfs/libcfs.h>
+#include <lnet/lib-cpu.h>
 #include <lprocfs_status.h>
 #include <lustre_handles.h>
 

@@ -425,6 +425,14 @@ static int __init lnet_init(void)
 		RETURN(rc);
 	}
 
+	rc = cfs_cpu_init();
+	if (rc != 0) {
+		CERROR("cfs_cpu_init: error %d\n", rc);
+		RETURN(rc);
+	}
+
+	init_libcfs_vfree_atomic();
+
 	rc = misc_register(&libcfs_dev);
 	if (rc) {
 		CERROR("misc_register: error %d\n", rc);
@@ -447,6 +455,10 @@ static int __init lnet_init(void)
 static void __exit lnet_exit(void)
 {
 	misc_deregister(&libcfs_dev);
+
+	cfs_cpu_fini();
+
+	exit_libcfs_vfree_atomic();
 
 	lnet_lib_exit();
 }

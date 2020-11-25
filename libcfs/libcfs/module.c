@@ -538,17 +538,11 @@ static int __init libcfs_init(void)
 
 	cfs_arch_init();
 
-	init_libcfs_vfree_atomic();
-
 	rc = libcfs_debug_init(5 * 1024 * 1024);
 	if (rc < 0) {
 		pr_err("LustreError: libcfs_debug_init: rc = %d\n", rc);
 		return (rc);
 	}
-
-	rc = cfs_cpu_init();
-	if (rc != 0)
-		goto cleanup_debug;
 
 	rc = cfs_wi_startup();
 	if (rc) {
@@ -561,7 +555,7 @@ static int __init libcfs_init(void)
 		rc = -ENOMEM;
 		CERROR("libcfs: failed to start rehash workqueue: rc = %d\n",
 		       rc);
-		goto cleanup_cpu;
+		goto cleanup_debug;
 	}
 
 	rc = cfs_crypto_register();
@@ -584,8 +578,6 @@ static int __init libcfs_init(void)
 	return 0;
 cleanup_wi:
 	cfs_wi_shutdown();
-cleanup_cpu:
-	cfs_cpu_fini();
 cleanup_debug:
 	libcfs_debug_cleanup();
 	return rc;
@@ -612,8 +604,6 @@ static void __exit libcfs_exit(void)
 	cfs_crypto_unregister();
 	cfs_wi_shutdown();
 
-	cfs_cpu_fini();
-
 	/* the below message is checked in test-framework.sh check_mem_leak() */
 	if (libcfs_kmem_read() != 0)
 		CERROR("Portals memory leaked: %lld bytes\n",
@@ -622,8 +612,6 @@ static void __exit libcfs_exit(void)
 	rc = libcfs_debug_cleanup();
 	if (rc)
 		pr_err("LustreError: libcfs_debug_cleanup: rc = %d\n", rc);
-
-	exit_libcfs_vfree_atomic();
 }
 
 MODULE_AUTHOR("OpenSFS, Inc. <http://www.lustre.org/>");

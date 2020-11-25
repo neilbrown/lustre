@@ -23,7 +23,7 @@
  * This file is part of Lustre, http://www.lustre.org/
  * Lustre is a trademark of Sun Microsystems, Inc.
  *
- * Please see comments in libcfs/include/libcfs/libcfs_cpu.h for introduction
+ * Please see comments in lnet/include/lnet/lib-cpu.h for introduction
  *
  * Author: liang@whamcloud.com
  */
@@ -33,7 +33,7 @@
 #include <linux/cpu.h>
 #include <linux/sched.h>
 #include <libcfs/libcfs.h>
-#include <libcfs/libcfs_cpu.h>
+#include <lnet/lib-cpu.h>
 
 /** virtual processing unit */
 struct cfs_cpu_partition {

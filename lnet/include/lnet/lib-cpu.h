@@ -24,7 +24,7 @@
  * This file is part of Lustre, http://www.lustre.org/
  * Lustre is a trademark of Sun Microsystems, Inc.
  *
- * libcfs/include/libcfs/libcfs_cpu.h
+ * lnet/include/lnet/lib-cpu.h
  *
  * CPU partition
  *   . CPU partition is virtual processing unit
@@ -79,6 +79,7 @@
 #include <linux/vmalloc.h>
 
 #include <libcfs/linux/linux-cpu.h>
+#include <libcfs/linux/linux-misc.h>
 
 /* any CPU partition */
 #define CFS_CPT_ANY		(-1)

@@ -34,6 +34,7 @@
 #define DEBUG_SUBSYSTEM S_LNET
 
 #include <linux/workqueue.h>
+#include <lnet/lib-cpu.h>
 #include <libcfs/libcfs.h>
 
 struct cfs_var_array {
