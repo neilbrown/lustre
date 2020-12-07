@@ -3632,11 +3632,13 @@ static int __init osc_init(void)
 	if (rc)
 		GOTO(out_kmem, rc);
 
-	register_shrinker(&osc_cache_shrinker);
+	rc = register_shrinker(&osc_cache_shrinker);
+	if (rc)
+		GOTO(out_type, rc);
 
 	/* This is obviously too much memory, only prevent overflow here */
 	if (osc_reqpool_mem_max >= 1 << 12 || osc_reqpool_mem_max == 0)
-		GOTO(out_type, rc = -EINVAL);
+		GOTO(out_shrinker, rc = -EINVAL);
 
 	reqpool_size = osc_reqpool_mem_max << 20;
 
@@ -3657,7 +3659,7 @@ static int __init osc_init(void)
 					  ptlrpc_add_rqs_to_pool);
 
 	if (osc_rq_pool == NULL)
-		GOTO(out_type, rc = -ENOMEM);
+		GOTO(out_shrinker, rc = -ENOMEM);
 
 	rc = osc_start_grant_work();
 	if (rc != 0)
@@ -3667,6 +3669,8 @@ static int __init osc_init(void)
 
 out_req_pool:
 	ptlrpc_free_rq_pool(osc_rq_pool);
+out_shrinker:
+	unregister_shrinker(&osc_cache_shrinker);
 out_type:
 	class_unregister_type(LUSTRE_OSC_NAME);
 out_kmem:
