@@ -2154,8 +2154,10 @@ static int osd_fallocate(const struct lu_env *env, struct dt_object *dt,
 	blen = (ALIGN(end, 1 << inode->i_blkbits) >> inode->i_blkbits) - boff;
 
 	flags = LDISKFS_GET_BLOCKS_CREATE;
+#ifdef LDISKFS_GET_BLOCKS_KEEP_SIZE
 	if (mode & FALLOC_FL_KEEP_SIZE)
 		flags |= LDISKFS_GET_BLOCKS_KEEP_SIZE;
+#endif
 
 	inode_lock(inode);
 
@@ -2224,10 +2226,12 @@ static int osd_fallocate(const struct lu_env *env, struct dt_object *dt,
 				epos = end;
 			if (ldiskfs_update_inode_size(inode, epos) & 0x1)
 				inode->i_mtime = inode->i_ctime;
+#ifdef LDISKFS_EOFBLOCKS_FL
 		} else {
 			if (epos > inode->i_size)
 				ldiskfs_set_inode_flag(inode,
 						       LDISKFS_INODE_EOFBLOCKS);
+#endif
 		}
 
 		ldiskfs_mark_inode_dirty(handle, inode);
