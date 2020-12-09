@@ -150,4 +150,8 @@ void remove_shrinker(struct shrinker *shrinker)
         kfree(shrinker);
 }
 
+#ifndef HAVE_KFREE_SENSITIVE
+#define kfree_sensitive(x)      kzfree(x)
+#endif
+
 #endif /* __LINUX_CFS_MEM_H__ */
