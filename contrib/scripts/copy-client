@@ -1,0 +1,784 @@
+#!/bin/bash
+
+# Copy client code from luatre master into linux.
+# lustre master free should be configured with
+#
+# ./configure -C --with-linux=SOURCE --with-linux-obj=OBJECT --disable-server --with-o2ib=no
+#
+# Requires "unifdef" and "spatch" (from coccinelle)
+
+case $# in
+ 1 ) lustre=$1;;
+ * ) echo Run in the target linux source tree, and give lustre source tree as arg.
+     exit 1
+esac
+
+cat << 'END' > /tmp/test.mk
+
+CONFIG_FS_POSIX_ACL=y
+CONFIG_SMP=y
+MODOBJ=$(MOD)-objs
+print:
+	@echo $(patsubst %.o,%.c,$($(MODOBJ)))
+
+PATCHLEVEL=1
+include $(DIR)/$(MOD)/Makefile
+END
+
+dirs="net/lnet/ fs/lustre/ include/uapi/linux/lnet/ include/uapi/linux/lustre/ include/linux/lnet/ include/linux/libcfs/"
+git clean -fxd $dirs > /dev/null
+git reset --hard
+
+mkdir -p net/lnet/libcfs
+LCFS="Makefile,debug.c,fail.c"
+LCFS="$LCFS,libcfs_string.c,linux-crypto-adler.c,linux-crypto.c,linux-crypto.h"
+LCFS="$LCFS,module.c,tracefile.c,tracefile.h"
+
+eval cp $lustre/libcfs/libcfs/{$LCFS} net/lnet/libcfs
+
+mkdir -p net/lnet/klnds
+cp $lustre/lnet/Makefile net/lnet/
+cp $lustre/lnet/klnds/Makefile net/lnet/klnds/
+for i in lnet klnds/socklnd
+do
+  mkdir -p net/lnet/$i
+  case $i in
+	klnds/* )  SRC=$(make -f /tmp/test.mk DIR=$lustre/lnet MOD=$i MODOBJ=k`basename $i`-objs print) ;;
+	* )  SRC=$(make -f /tmp/test.mk DIR=$lustre/lnet MOD=$i print) ;;
+  esac
+
+  for f in $SRC Makefile
+  do cp $lustre/lnet/$i/$f net/lnet/$i
+  done
+  case $i in
+    lnet ) ;;
+    * ) cp $lustre/lnet/$i/*.h net/lnet/$i
+  esac
+done
+
+for i in fid fld include ldlm llite lmv lov mdc mgc obdclass obdecho osc ptlrpc
+do
+  mkdir -p fs/lustre/$i
+  case $i in
+	ldlm )  SRC=$(make -f /tmp/test.mk DIR=$lustre/lustre MOD=ptlrpc MODOBJ=ldlm_objs print) ;;
+	ptlrpc )  SRC=$(make -f /tmp/test.mk DIR=$lustre/lustre MOD=ptlrpc MODOBJ=ptlrpc_objs print) ;;
+	llite )  SRC=$(make -f /tmp/test.mk DIR=$lustre/lustre MOD=$i MODOBJ=lustre-objs print) ;;
+	* )  SRC=$(make -f /tmp/test.mk DIR=$lustre/lustre MOD=$i print) ;;
+  esac
+  for f in $SRC Makefile
+  do cp $lustre/lustre/$i/$f fs/lustre/$i
+  done
+  cp $lustre/lustre/$i/*.h fs/lustre/$i
+done
+
+mkdir -p include/linux/lnet
+cp $lustre/lnet/include/lnet/*.h include/linux/lnet
+
+mkdir -p include/linux/libcfs
+cp $lustre/libcfs/include/libcfs/*.h include/linux/libcfs
+
+mkdir -p include/uapi/linux/lnet
+cp $lustre/lnet/include/uapi/linux/lnet/*.h include/uapi/linux/lnet
+
+mkdir -p include/uapi/linux/lustre
+cp $lustre/lustre/include/uapi/linux/lustre/*.h include/uapi/linux/lustre
+
+#sed -i '/lustre_nrs/d' fs/lustre/include/lustre_net.h
+
+cat << 'END' > /tmp/lustre.h
+#define with_imp_locked(_o, _i, _rc) if(o)
+END
+
+: << END
+
+
+@ strcmpneq0 disable not_int1, not_int2, is_zero, isnt_zero @
+expression E1,E2;
+@@
+-strcmp(E1,E2) != 0
++!!strcmp(E1,E2)
+
+@ neq0 disable not_int1, not_int2, is_zero, isnt_zero @
+expression E;
+@@
+ E
+-!= 0
+
+@ strneq disable not_int1, not_int2, is_zero, isnt_zero @
+expression E1, E2;
+@@
+-!!strcmp(E1,E2)
++strcmp(E1, E2) != 0
+
+@ strcmpeq disable not_int1, not_int2, is_zero, isnt_zero  @
+expression E1, E2;
+@@
+-!strcmp(E1, E2)
++strcmp(E1, E2) == 0
+
+@ neqNULL @
+expression E;
+@@
+ E
+-!= NULL
+
+END
+
+cat << 'END' > /tmp/lustre.cocci
+
+@ GOTO2 @
+identifier LABEL;
+expression VAR, VAL;
+@@
+-GOTO(LABEL, VAR = VAL);
++VAR = VAL;
++goto LABEL;
+
+@ GOTO @
+identifier LABEL;
+expression VAL;
+@@
+-GOTO(LABEL, VAL);
++goto LABEL;
+
+@ cfs_time_seconds @
+@@
+-cfs_time_seconds(1)
++HZ
+@ @
+expression E1;
+@@
+-cfs_time_seconds(E1)
++E1 * HZ
+
+@ fscrypt @
+expression E1;
+@@
+-unlikely(fscrypt_dummy_context_enabled(E1))
++0
+
+@ shrinker @
+identifier NAME, SHRINK, COUNT, SCAN;
+@@
+-int DEF_SHRINKER_VAR=(NAME, SHRINK, COUNT, SCAN);
++static struct shrinker NAME = {
++	.count_objects = COUNT,
++	.scan_objects  = SCAN,
++};
+
+@ vfs_unlink @
+expression DIR, DENTRY;
+@@
+-ll_vfs_unlink(DIR, DENTRY)
++vfs_unlink(DIR, DENTRY, NULL)
+
+@ selinux @
+expression E1, E2;
+statement S1;
+@@
+-if (E1 && !selinux_is_enabled() && E2) S1
+
+@ @
+statement S1;
+@@
+-if(!selinux_is_enabled()) S1
+
+@ @
+expression E1;
+statement S1;
+@@
+-if(E1 || !selinux_is_enabled()) S1
++if(E1) S1
+
+@ filemap_fault @
+expression VMA, VMF;
+@@
+-ll_filemap_fault(VMA, VMF)
++filemap_fault(VMF)
+
+@ cfs_timer_cb_arg @
+expression VAR;
+identifier FIELD;
+@@
+-cfs_timer_cb_arg(VAR, FIELD)
++&VAR->FIELD
+
+@ fix_timer_setup @
+expression E1, E2, E3, E4;
+@@
+
+-cfs_timer_setup
++timer_setup
+ (E1, E2,
+- E3,
+ E4)
+
+@ pagevec_init @
+expression E1;
+@@
+-ll_pagevec_init(E1, 0);
++pagevec_init(E1);
+
+@ task_ns @
+expression E1;
+@@
+
+- ll_task_pid_ns(E1)
++ E1->nsproxy ? E1->nsproxy->pid_ns_for_children : NULL
+@ RETURN @
+expression E1;
+@@
+
+-RETURN(E1);
++return E1;
+
+@ OBD_ALLOC @
+expression E1, E2;
+@@
+-OBD_ALLOC(E1, E2);
++E1 = kzalloc(E2, GFP_NOFS);
+
+@ OBD_ALLOC_GFP @
+expression E1, E2, E3;
+@@
+-OBD_ALLOC_GFP(E1, E2, E3);
++E1 = kzalloc(E2, E3);
+
+@ OBD_ALLOC_LARGE @
+expression E1, E2;
+@@
+-OBD_ALLOC_LARGE(E1, E2);
++E1 = kvzalloc(E2, GFP_KERNEL);
+
+@ OBD_ALLOC_WAIT @
+expression E1, E2;
+@@
+-OBD_ALLOC_WAIT(E1, E2);
++E1 = kzalloc(E2, GFP_KERNEL);
+
+@ OBD_ALLOC_PTR @
+expression E1;
+@@
+-OBD_ALLOC_PTR(E1);
++E1 = kzalloc(sizeof(*E1), GFP_NOFS);
+
+@ OBD_ALLOC_PTR_ARRAY @
+expression E1, E2;
+@@
+-OBD_ALLOC_PTR_ARRAY(E1, E2);
++E1 = kcalloc(E2, sizeof(*E1), GFP_NOFS);
+
+@ OBD_ALLOC_PTR_ARRAY_LARGE @
+expression E1, E2;
+@@
+-OBD_ALLOC_PTR_ARRAY_LARGE(E1, E2);
++E1 = kvcalloc(E2, sizeof(*E1), GFP_KERNEL);
+
+@ OBD_SLAB_ALLOC_PTR_GFP @
+expression VAR, SLAB, GFP;
+@@
+-OBD_SLAB_ALLOC_PTR_GFP(VAR, SLAB, GFP);
++VAR = kmem_cache_zalloc(SLAB, GFP);
+
+@ OBD_SLAB_ALLOC_GFP @
+expression VAR, SIZE, SLAB, GFP;
+@@
+-OBD_SLAB_ALLOC_GFP(VAR, SLAB, SIZE, GFP);
++VAR = kmem_cache_zalloc(SLAB, GFP);
+
+@ OBD_SLAB_ALLOC @
+expression VAR, SIZE, SLAB;
+@@
+-OBD_SLAB_ALLOC(VAR, SLAB, SIZE);
++VAR = kmem_cache_zalloc(SLAB, GFP_NOFS);
+
+@ OBD_SLAB_ALLOC_PTR @
+expression VAR, SLAB;
+@@
+-OBD_SLAB_ALLOC_PTR(VAR, SLAB);
++VAR = kmem_cache_zalloc(SLAB, GFP_NOFS);
+
+@ OBD_FREE @
+expression E1, E2;
+@@
+-OBD_FREE(E1, E2);
++kfree(E1);
+
+@ OBD_FREE_LARGE @
+expression VAR, SIZE;
+@@
+-OBD_FREE_LARGE(VAR, SIZE);
++kvfree(VAR);
+
+@ OBD_FREE_PTR @
+expression E1;
+@@
+-OBD_FREE_PTR(E1);
++kfree(E1);
+
+@ OBD_FREE_PTR_ARRAY @
+expression VAR,COUNT;
+@@
+-OBD_FREE_PTR_ARRAY(VAR,COUNT);
++kfree(VAR);
+
+@ OBD_FREE_PTR_ARRAY_LARGE @
+expression VAR,COUNT;
+@@
+-OBD_FREE_PTR_ARRAY_LARGE(VAR, COUNT);
++kvfree(VAR);
+
+@ OBD_SLAB_FREE_PTR @
+expression VAR,SLAB;
+@@
+-OBD_SLAB_FREE_PTR(VAR, SLAB);
++kmem_cache_free(SLAB, VAR);
+
+@ OBD_SLAB_FREE @
+expression VAR,SLAB,SIZE;
+@@
+-OBD_SLAB_FREE(VAR, SLAB, SIZE);
++kmem_cache_free(SLAB, VAR);
+
+@ OBD_CPT_ALLOC @
+expression VAR, TAB, CPT, SIZE;
+@@
+-OBD_CPT_ALLOC(VAR, TAB, CPT, SIZE);
++VAR = kzalloc_node(SIZE, GFP_NOFS,
++	            cfs_cpt_spread_node(TAB, CPT));
+
+@ OBD_CPT_ALLOC_GFP @
+expression VAR, TAB, CPT, SIZE, GFP;
+@@
+-OBD_CPT_ALLOC_GFP(VAR, TAB, CPT, SIZE, GFP);
++VAR = kzalloc_node(SIZE, GFP,
++	            cfs_cpt_spread_node(TAB, CPT));
+
+@ OBD_CPT_ALLOC_LARGE @
+expression VAR, TAB, CPT, SIZE;
+@@
+-OBD_CPT_ALLOC_LARGE(VAR, TAB, CPT, SIZE);
++VAR = kvmalloc_node(SIZE, GFP_KERNEL | __GFP_ZERO,
++	            cfs_cpt_spread_node(TAB, CPT));
+
+@ OBD_CPT_ALLOC_PTR @
+expression VAR, TAB, CPT;
+@@
+-OBD_CPT_ALLOC_PTR(VAR, TAB, CPT);
++VAR = kzalloc_node(sizeof(*VAR), GFP_NOFS,
++	            cfs_cpt_spread_node(TAB, CPT));
+
+@ libcfs_alloc @
+expression E1, E2;
+@@
+-LIBCFS_ALLOC(E1, E2);
++E1 = kzalloc(E2, GFP_NOFS);
+
+@ libcfs_alloc_atomic @
+expression E1, E2;
+@@
+-LIBCFS_ALLOC_ATOMIC(E1, E2);
++E1 = kzalloc(E2, GFP_ATOMIC);
+
+@ libcfs_alloc_gfp @
+expression E1, E2, E3;
+@@
+-LIBCFS_ALLOC_GFP(E1, E2, E3);
++E1 = kzalloc(E2, E3);
+
+@ cfs_alloc_ptr @
+expression E1;
+@@
+-CFS_ALLOC_PTR(E1);
++E1 = kzalloc(sizeof(*E1), GFP_NOFS);
+
+@ cfs_alloc_ptr_array @
+expression E1, E2;
+@@
+-CFS_ALLOC_PTR_ARRAY(E1, E2);
++E1 = kcalloc(E2, sizeof(*E1), GFP_NOFS);
+
+@ libcfs_cpt_alloc @
+expression VAR, TABLE, CPT, SIZE;
+@@
+-LIBCFS_CPT_ALLOC(VAR, TABLE, CPT, SIZE);
++VAR = kzalloc_node(SIZE, GFP_NOFS, cfs_cpt_spread_node(TABLE, CPT));
+
+@ CFS_FREE_PTR @
+expression E1;
+@@
+-CFS_FREE_PTR(E1);
++kfree(E1);
+
+@ CFS_FREE_PTR_ARRAY @
+expression VAR, SIZE;
+@@
+-CFS_FREE_PTR_ARRAY(VAR, SIZE);
++kfree(VAR);
+
+@ LIBCFS_FREE @
+expression VAR, SIZE;
+@@
+-LIBCFS_FREE(VAR, SIZE);
++kfree(VAR);
+
+END
+
+sed -i -e '/OBD_DEBUG_MEMUSAGE/,/OBD_SLAB_FREE((ptr), (slab), sizeof/d' fs/lustre/include/obd_support.h
+sed -i -e '/LIBCFS_VMALLOC_SIZE/,/\*\*\*\*\*\*\*\*\*\*/d' \
+       -e '/CFS_ALLOC_PTR/,/LIBCFS_FREE/d' \
+       include/linux/libcfs/libcfs_private.h
+sed -i -e '/if defined.*CDEBUG_ENTRY_EXIT/,/endif.*CDEBUG_ENTRY_EXIT/d' \
+	include/linux/libcfs/libcfs_debug.h
+
+find $dirs -name '*.[ch]' -type f |
+ while read f
+ do
+  sed -i -e :l -e '/LUSTRE_VERSION_CODE [<>] OBD_OCD_VERSION/s/, \([0-9]\),/, 0\1,/g' -e tl \
+	-e '/LUSTRE_VERSION_CODE/s/OBD_OCD_VERSION(\([0-9]*\), \([0-9]*\), \([0-9]*\), 0)/\1\2\3/' \
+	$f
+  unifdef -k -UHAVE_SERVER_SUPPORT -UHAVE_SEQ_SERVER -DHAVE_KERNEL_PARAM_OPS \
+	-UHAVE_XATTR_HANDLER_SIMPLIFIED -DHAVE_SCHED_HEADERS -DHAVE_SHRINKER_COUNT \
+	-DCONFIG_LUSTRE_FS_POSIX_ACL -DHAVE_UIDGID_HEADER -DCONFIG_PROC_FS -DFMODE_EXEC \
+	-DHAVE_KEY_TYPE_INSTANTIATE_2ARGS -DHAVE_CRED_TGCRED -DHAVE_KEYRING_UPCALL_SERIALIZED \
+	-DHAVE_KEY_PAYLOAD_DATA_ARRAY -DHAVE_REVERSE_CTX_NOKEY -DHAVE_KEY_MATCH_DATA \
+	-DHAVE_MODULE_LOADING_SUPPORT -DENABLE_CHECKSUM -DHAVE_LUSTRE_CRYPTO \
+	-UHAVE_D_COMPARE_5ARGS -DHAVE_D_COMPARE_4ARGS -DHAVE_DIR_CONTEXT \
+	-DHAVE_IOP_GET_LINK -UHAVE_AIO_COMPLETE -DHAVE_VM_OPS_USE_VM_FAULT_ONLY \
+	-DHAVE_WAIT_QUEUE_ENTRY -DHAVE_IN_DEV_FOR_EACH_IFA_RTNL \
+	-DHAVE_WAIT_QUEUE_ENTRY_LIST \
+	-DHAVE_SAVE_STACK_TRACE_TSK -DHAVE_STACKTRACE_OPS -DHAVE_HOTPLUG_STATE_MACHINE \
+	-UHAVE_KERNEL_SETSOCKOPT -DHAVE_SK_DATA_READY_ONE_ARG -DHAVE_KMAP_TO_PAGE \
+	-DHAVE_KERN_SOCK_GETNAME_2ARGS -DHAVE_GENERIC_WRITE_SYNC_2ARGS \
+	-DHAVE_CRYPTO_HASH_HELPERS -DHAVE_HYPERVISOR_IS_TYPE -DHAVE_SOCK_CREATE_KERN_USE_NET \
+	-UHAVE_ACCOUNT_PAGE_DIRTIED_3ARGS \
+	-UHAVE_ACCOUNT_PAGE_DIRTIED_EXPORT \
+	-UHAVE_BACKING_DEV_INFO \
+	-DHAVE_BDI_CAP_MAP_COPY \
+	-DHAVE_CPUS_READ_LOCK \
+	-UHAVE_DEFAULT_FILE_SPLICE_READ_EXPORT \
+	-DHAVE_DIO_ITER \
+	-DHAVE_DIRECTIO_2ARGS \
+	-DHAVE_FILE_OPERATIONS_READ_WRITE_ITER \
+	-DHAVE_FILLDIR_USE_CTX \
+	-DHAVE_GENERIC_WRITE_SYNC_2ARGS \
+	-DHAVE_GROUP_INFO_GID \
+	-DHAVE_INODEOPS_ENHANCED_GETATTR \
+	-DHAVE_INTERVAL_TREE_CACHED \
+	-DHAVE_INVALIDATE_RANGE \
+	-DHAVE_IOPS_RENAME_WITH_FLAGS \
+	-UHAVE_IOP_GENERIC_READLINK \
+	-DHAVE_IOP_SET_ACL \
+	-UHAVE_IOP_XATTR \
+	-DHAVE_IOV_ITER_RW \
+	-UHAVE_KALLSYMS_LOOKUP_NAME \
+	-DHAVE_KIOCB_KI_LEFT \
+	-UHAVE_LINUX_SELINUX_IS_ENABLED \
+	-DHAVE_LOCKS_LOCK_FILE_WAIT \
+	-DHAVE_LRU_RESIZE_SUPPORT \
+	-UHAVE_NR_UNSTABLE_NFS \
+	-DHAVE_PERCPU_COUNTER_INIT_GFP_FLAG \
+	-DHAVE_RADIX_TREE_TAG_SET \
+	-DHAVE_RELEASEPAGE_WITH_INT \
+	-DHAVE_STRUCT_POSIX_ACL_XATTR \
+	-DHAVE_SUPER_SETUP_BDI_NAME \
+	-UHAVE_SYMLINK_OPS_USE_NAMEIDATA \
+	-DHAVE_UAPI_LINUX_MOUNT_H \
+	-DHAVE_VM_FAULT_RETRY \
+	-DHAVE_XATTR_HANDLER_NAME \
+	-DHAVE_XATTR_HANDLER_INODE_PARAM \
+	-DLOOKUP_CONTINUE \
+	-DLUSTRE_VERSION_CODE=21353 \
+	-DUPSTREAM_LINUX \
+	-UHAVE_DUMMY_CONTEXT \
+	-UCONFIG_LL_ENCRYPTION \
+	-o $f.tmp $f 
+     mv $f.tmp $f
+  git add $f
+
+  # lustre_compat.h is never wanted - it is for back-compat stuff.
+  # many includes are in different directories
+  # FIXME remove curproc.h from lustre
+  sed -i \
+	-e '/include.*<lustre_compat.h>/d' \
+	-e '/include.*"curproc.h"/itypedef u32 cfs_cap_t;' \
+	-e '/include.*"curproc.h"/i#define cfs_cap_pack(cap) (cap)' \
+	-e '/include.*"curproc.h"/i#define cfs_cap_unpack(cap) (cap)' \
+	-e '/include.*"curproc.h"/istatic inline cfs_cap_t cfs_curproc_cap_pack(void){return cfs_cap_pack(current_cap().cap[0]);}' \
+	-e'/include.*"curproc.h"/d' \
+	-e '/include.*linux-.[^r]/d' \
+	-e 's,include\(.*\)<lnet/,include\1<linux/lnet/,' \
+	-e 's,include\(.*\)<libcfs/,include\1<linux/libcfs/,' \
+	-e 's/cfs_apply_workqueue_attrs/apply_workqueue_attrs/' \
+	-e 's,libcfs/crypto/llcrypt.h,fscrypt.h,' \
+	-e 's/\bCDEBUG_ENABLED\b/CONFIG_CDEBUG_ENABLED/' \
+	-e 's/\bLIBCFS_DEBUG\b/CONFIG_LIBCFS_DEBUG/' \
+	-e 's/cfs_kernel_param_arg_t/const struct kernel_param/' \
+	-e 's/cfs_timer_cb_arg_t/struct timer_list */' \
+	-e 's/cfs_from_timer/from_timer/' \
+	-e 's/cfs_totalram_pages/totalram_pages/' \
+	-e '/^\s*ENTRY;\s*$/d' \
+	-e '/^\s*EXIT;\s*$/d' \
+	-e 's/RETURN_EXIT;/return;/' \
+	-e 's/cfs_capable/capable/' \
+	-e 's/CFS_CAP_FS_MASK/CAP_FS_MASK_B0/' \
+	-e 's/CFS_CAP_/CAP_/g' \
+	-e 's/\bd_alias/d_u.d_alias/' \
+	-e 's/ll_d_count/d_count/' \
+	-e 's/(LOOKUP_CONTINUE.*LOOKUP_PARENT)/LOOKUP_PARENT/' \
+	-e 's/posix_acl_xattr_header/struct posix_acl_xattr_header/' \
+	-e 's/posix_acl_xattr_entry/struct posix_acl_xattr_entry/' \
+	-e 's/ll_xa_lock_irqsave/xa_lock_irqsave/' \
+	-e 's/ll_xa_lock/xa_lock/' \
+	-e 's/ll_xa_unlock_irqrestore/xa_unlock_irqrestore/' \
+	-e 's/ll_xa_unlock/xa_unlock/' \
+	-e 's/ll_xa_is_value/xa_is_value/' \
+	-e 's/\bpage_tree\b/i_pages/' \
+	-e 's/ll_truncate_pagecache/truncate_pagecache/' \
+	-e '/OBD_FREE_PRE/d' \
+	-e '/POISON(/d' \
+	-e '/POISON_PAGE(/d' \
+	-e 's/llcrypt/fscrypt/g' \
+	-e 's/LL_\(IOC_[A-Z_]*ENCRYPTION[A-Z_]*\)/FS_\1/' \
+	-e 's/cfs_kernel_write/kernel_write/' \
+	-e 's/cfs_kernel_read/kernel_read/' \
+	-e '/PROC_OWNER(THIS_MODULE)/d' \
+	-e 's/cfs_hash_32/hash_32/' \
+	-e 's/cfs_hash_64/hash_64/' \
+	-e 's/cfs_hashlen_string/hashlen_string/' \
+	-e 's/ll_full_name_hash/full_name_hash/' \
+	-e 's/ll_vfs_getattr/vfs_getattr/' \
+	-e 's/ll_vfs_getxattr/__vfs_getxattr/' \
+	-e 's/ll_vfs_setxattr/__vfs_setxattr/' \
+	-e 's/^DEF_SHRINKER_VAR/int DEF_SHRINKER_VAR=/' \
+	-e 's/get_vmf_address(vmf)/(void __user *)vmf->address/' \
+	-e 's/___wait_cond_timeout1/___wait_cond_timeout/' \
+	-e '/fscrypt_sb_free(sb);/d' \
+	-e :loop -e 's/^\(	*\)        /\1	/' -e tloop \
+	$f
+  case $f in
+	*uapi* ) ;;
+	* ) sed -i -e 's/__\([su][136]624]\b\)/\1/g' $f
+  esac
+
+  spatch --very-quiet --sp-file /tmp/lustre.cocci  --macro-file-builtins /usr/lib64/coccinelle/standard.h --macro-file=/tmp/lustre.h --no-show-diff --in-place --iso-file /usr/lib64/coccinelle/standard.iso $f
+
+  # We would rather spatch handled these, but they are in macros...
+  # also delete duplicate blank lines
+  sed -i \
+	-e 's/OBD_FREE_PTR\b/kfree/' \
+	-e 's/OBD_ALLOC_PTR(value)/value = kzalloc(sizeof(*value), GFP_NOFS)/' \
+	-e 's/cfs_time_seconds(1)/HZ/' \
+	-e 's/RETURN(\(rc\|-ENODEV\))/return \1/' \
+	-e '$!N; /^\n$/!P; D' \
+	$f
+
+ done
+
+again=y
+while [ $again = y ] ; do
+  again=n
+
+  # first fs/lustre/include
+  { grep -h -r '^#.*include.*<[^/]*>' fs/lustre/ | sed 's/#.*include.*<\(.*\)>.*/\1/' 
+    grep -h -r '^#.*include.*"[^/]*"' fs/lustre/include | sed 's/^#.*include.*"\(.*\)".*/\1/'
+  } | sort -u > /tmp/incl_need
+  ls fs/lustre/include/ | grep '\.h$' > /tmp/incl_have
+  for f in $(comm -23 /tmp/incl_have /tmp/incl_need)
+  do git rm -f fs/lustre/include/$f > /dev/null
+    again=y
+  done
+
+  # then uapi/linux/lustre
+  { grep -h -r '^#.*include.*<uapi/linux/lustre/[^/]*>' fs/lustre/ | sed 's/#.*include.*<uapi.linux.lustre.\(.*\)>.*/\1/'
+    grep -h -r '^#.*include.*<linux/lustre/[^/]*>' include/uapi/linux/lustre/ | 
+	sed 's/^#.*include.*<linux.lustre.\(.*\)>.*/\1/'
+  } | sort -u > /tmp/incl_need
+  ls include/uapi/linux/lustre/ | grep '\.h$' > /tmp/incl_have
+  for f in $(comm -23 /tmp/incl_have /tmp/incl_need)
+  do git rm -f include/uapi/linux/lustre/$f > /dev/null
+    again=y
+  done
+
+  # now check libcfs - against lustre, lnet, libcfs
+  { grep -h -r '^#.*include.*<linux/libcfs/[^/]*>' $dirs |
+       sed 's,#.*include.*<linux/libcfs.\(.*\)>.*,\1,'
+  } | sort -u > /tmp/incl_need
+  ls include/linux/libcfs/ | grep '\.h$' > /tmp/incl_have
+  for f in $(comm -23 /tmp/incl_have /tmp/incl_need)
+  do git rm -f include/linux/libcfs/$f > /dev/null
+    again=y
+  done
+
+  # now individual modules
+  for m in obdclass ptlrpc ; do
+    { grep -h -r '^#.*include.*".*"' fs/lustre/$m |
+       sed 's/^#.*include.*"\(.*\)".*/\1/'
+    } | sort -u > /tmp/incl_need
+    ls fs/lustre/$m | grep '\.h$' > /tmp/incl_have
+    for f in $(comm -23 /tmp/incl_have /tmp/incl_need)
+    do git rm -f fs/lustre/$m/$f > /dev/null
+      again=y
+    done
+  done
+
+done
+
+# Sort out the Makefiles:
+
+for f in `find net/lnet -name Makefile`
+do
+  mod=
+  case $f in
+	net/lnet/lnet/Makefile ) mod=lnet conf=LNET;;
+	net/lnet/libcfs/Makefile ) mod=libcfs conf=LNET;;
+	*socklnd* ) mod=ksocklnd conf=LNET ;;
+  esac
+  mod=$(sed -n -e 's/^MODULE.*= //p' $f)
+  sed \
+	-e '/^#/d'		\
+	-e '/^MODULES/d'	\
+	-e '/^default/d'	\
+	-e '/EXTRA_DIST/d'	\
+	-e '/EXTRA_PRE_CFLAGS/d'\
+	-e '/^includedir/d'	\
+	-e '/^include.*Rules/d'	\
+	-e '/libcfs-crypto-objs/d' \
+	-e 's/\$(libcfs-linux-objs)//' \
+	-e '/gss\//d'		\
+	$f |
+	uniq > $f.tmp
+   mv $f.tmp $f
+   if [ -n "$mod" ]; then
+	sed -i \
+	  -e "\$a$mod-y = \$($mod-objs)" \
+	  -e "\$aobj-\$(CONFIG_$conf) += $mod.o" \
+	  $f
+   fi
+done
+cat > net/lnet/Makefile << 'END'
+obj-$(CONFIG_LNET) += libcfs/ lnet/ klnds/
+END
+
+
+for f in `find fs/lustre -name Makefile`
+do
+  mod=$(sed -n -e 's/^MODULE.*= //p' $f)
+  sed \
+	-e '1iccflags-y += -I$(srctree)/$(src)/../include -DLUSTRE_MAJOR=2 -DLUSTRE_MINOR=13 -DLUSTRE_PATCH=53 -DLUSTRE_FIX=0 -DLUSTRE_VERSION_STRING=\\"2.13.53\\"' \
+	-e '/^#/d'		\
+	-e '/^MODULES/d'	\
+	-e '/^default/d'	\
+	-e '/EXTRA_DIST/d'	\
+	-e '/EXTRA_PRE_CFLAGS/d'\
+	-e '/^includedir/d'	\
+	-e '/^include.*Rules/d'	\
+	-e '/gss\//d'		\
+	$f |
+	uniq > $f.tmp
+   mv $f.tmp $f
+   if [ -n "$mod" ]; then
+	sed -i \
+	  -e "\$a$mod-y = \$($mod-objs)" \
+	  -e "\$aobj-\$(CONFIG_LUSTRE_FS) += $mod.o" \
+	  $f
+   fi
+done
+
+cat << 'END' > fs/lustre/Makefile
+obj-$(CONFIG_LUSTRE_FS) += obdclass/ ptlrpc/ fld/ osc/ mgc/ \
+                          fid/ lov/ mdc/ lmv/ llite/ obdecho/
+END
+
+cat > net/lnet/Kconfig << END
+config LNET
+	tristate "Lustre networking subsystem (LNet)"
+	depends on INET
+	help
+	  The Lustre network layer, also known as LNet, is a networking abstaction
+	  level API that was initially created to allow Lustre Filesystem to utilize
+	  very different networks like tcp and ib verbs in a uniform way. In the
+	  case of Lustre routers only the LNet layer is required. Lately other
+	  projects are also looking into using LNet as their networking API as well.
+END
+cat > fs/lustre/Kconfig << END
+config LUSTRE_FS
+	tristate "Lustre file system client support"
+	depends on LNET
+	select CRYPTO
+	select CRYPTO_CRC32
+	select CRYPTO_CRC32_PCLMUL if X86
+	select CRYPTO_CRC32C
+	select CRYPTO_MD5
+	select CRYPTO_SHA1
+	select CRYPTO_SHA256
+	select CRYPTO_SHA512
+	select CRC_T10DIF
+	select DEBUG_FS
+	select FHANDLE
+	select QUOTA
+	select CRC32
+	select FS_ENCRYPTION
+	depends on MULTIUSER
+	help
+	  This option enables Lustre file system client support. Choose Y
+	  here if you want to access a Lustre file system cluster. To compile
+	  this file system support as a module, choose M here: the module will
+	  be called lustre.
+
+	  To mount Lustre file systems, you also need to install the user space
+	  mount.lustre and other user space commands which can be found in the
+	  lustre-client package, available from
+	  http://downloads.whamcloud.com/public/lustre/
+
+	  Lustre file system is the most popular cluster file system in high
+	  performance computing. Source code of both kernel space and user space
+	  Lustre components can also be found at
+	  http://git.whamcloud.com/?p=fs/lustre-release.git;a=summary
+
+	  If unsure, say N.
+
+	  See also http://wiki.lustre.org/
+
+config LUSTRE_FS_POSIX_ACL
+	bool "Lustre POSIX Access Control Lists"
+	depends on LUSTRE_FS
+	default y
+	select FS_POSIX_ACL
+	help
+	  POSIX Access Control Lists (ACLs) support permissions for users and
+	  groups beyond the owner/group/world scheme.
+	  Lustre can support these ACLs.
+
+	  In in doubt, say Y.
+
+config LUSTRE_DEBUG_EXPENSIVE_CHECK
+	bool "Enable Lustre DEBUG checks"
+	select REFCOUNT_FULL
+	depends on LUSTRE_FS
+	help
+	  This option is mainly for debug purpose. It enables Lustre code to do
+	  expensive checks that may have a performance impact.
+
+	  Use with caution. If unsure, say N.
+
+config LUSTRE_TRANSLATE_ERRNOS
+	bool
+	depends on LUSTRE_FS && !X86
+	default y
+
+config CDEBUG_ENABLED
+	bool "Enable Lustre CDEBUG"
+	default y
+
+config LIBCFS_DEBUG
+	bool "Enable Lustre CDEBUG"
+	default y
+END
+
+sed -i -e '/ceph/asource "fs/lustre/Kconfig"' fs/Kconfig
+sed -i -e '/ceph/aobj-$(CONFIG_LUSTRE_FS)	+= lustre/' fs/Makefile
+sed -i -e '/ceph/asource "net/lnet/Kconfig"' net/Kconfig
+sed -i -e '/ceph/aobj-$(CONFIG_LNET)		+= lnet/' net/Makefile
+
+echo 'use "git add fs/lustre/ net/lnet/ ; git add -u; git commit" to finish commit'
